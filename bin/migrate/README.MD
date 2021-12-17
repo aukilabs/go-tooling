@@ -32,6 +32,6 @@ eg:
 Then launch the migration:
 
 ```sh
-migrate          # Performs migration up to the latest version
-migrate -steps 1 # Performs migration X steps forward or backward
+migrate -url [postgres_url]          # Performs migration up to the latest version
+migrate -url [postgres_url] -steps 1 # Performs migration X steps forward or backward
 ```

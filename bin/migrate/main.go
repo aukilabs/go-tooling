@@ -10,13 +10,12 @@ import (
 
 func main() {
 	cfg := struct {
-		PostgresURL string `env:"MIGGRATE_POSTGRES_URL" help:"The url to connect to Postgres."`
-		Sources     string `env:"MIGGRATE_SOURCES"      help:"The directory where the migration files are located."`
-		Steps       int    `env:"MIGRATE_STEPS"         help:"The steps forward or backward to migrate to. 0 migrates the DB to its latest state."`
-		Help        bool   `env:"-"                     help:"Show help."`
+		URL     string `env:"MIGGRATE_URL"     help:"The url to connect to Postgres."`
+		Sources string `env:"MIGGRATE_SOURCES" help:"The directory where the migration files are located."`
+		Steps   int    `env:"MIGRATE_STEPS"    help:"The steps forward or backward to migrate to. 0 migrates the DB to its latest state."`
+		Help    bool   `env:"-"                help:"Show help."`
 	}{
-		PostgresURL: "postgres://test:test@localhost:5432/hds?sslmode=disable",
-		Sources:     "file://data/migrations",
+		Sources: "file://data/migrations",
 	}
 
 	cli.Register().
@@ -24,9 +23,13 @@ func main() {
 		Options(&cfg)
 	cli.Load()
 
-	m, err := migrate.New(cfg.Sources, cfg.PostgresURL)
+	if cfg.URL == "" {
+		logrus.Fatal("database url is not set. \033[2m=> migrate -url [postgres_url]\033[00m")
+	}
+
+	m, err := migrate.New(cfg.Sources, cfg.URL)
 	if err != nil {
-		logrus.WithError(err).Error("creation migration failed")
+		logrus.WithError(err).Error("creating migration failed")
 		return
 	}
 
