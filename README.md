@@ -8,8 +8,8 @@ A collection of packages to help build Go services.
 make test
 ```
 
-## Tag new version
+## Tag New Version
 
 ```sh
-VERSION=v0.x.x release # Replace x by numbers
+make VERSION=v0.x.x release # Replace x by numbers
 ```
