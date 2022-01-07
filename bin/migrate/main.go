@@ -10,8 +10,8 @@ import (
 
 func main() {
 	cfg := struct {
-		URL     string `env:"MIGGRATE_URL"     help:"The url to connect to Postgres."`
-		Sources string `env:"MIGGRATE_SOURCES" help:"The directory where the migration files are located."`
+		URL     string `env:"MIGRATE_URL"      help:"The url to connect to Postgres."`
+		Sources string `env:"MIGRATE_SOURCES"  help:"The directory where the migration files are located."`
 		Steps   int    `env:"MIGRATE_STEPS"    help:"The steps forward or backward to migrate to. 0 migrates the DB to its latest state."`
 		Help    bool   `env:"-"                help:"Show help."`
 	}{
