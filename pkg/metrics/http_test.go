@@ -53,3 +53,26 @@ func TestHTTP(t *testing.T) {
 		require.Equal(t, "Hello, Ted", string(greet))
 	})
 }
+
+func TestDefaultPathFormater(t *testing.T) {
+	utests := []struct {
+		in  string
+		out string
+	}{
+		{in: "/", out: "/"},
+		{in: "/hello", out: "/hello"},
+		{in: "/hello/", out: "/hello/"},
+		{in: "/hello/world", out: "/hello/"},
+		{in: "hello", out: "/hello"},
+	}
+
+	for _, u := range utests {
+		require.Equal(t, u.out, DefaultPathFormater(u.in))
+	}
+}
+
+func BenchmarkDefaultPathFormater(b *testing.B) {
+	for n := 0; n < b.N; n++ {
+		DefaultPathFormater("/hello/world")
+	}
+}

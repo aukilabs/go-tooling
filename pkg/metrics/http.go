@@ -4,6 +4,7 @@ import (
 	"io"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/aukilabs/go-tooling/pkg/errors"
@@ -108,8 +109,29 @@ var (
 // create metrics dimensions.
 type PathFormater func(path string) string
 
+// The default path formater used when none is specified.
+//
+// The formater returns the first element of the path suffixed with a / when
+// there are multiple elements.
+func DefaultPathFormater(path string) string {
+	if !strings.HasPrefix(path, "/") {
+		path = "/" + path
+	}
+
+	p := strings.TrimPrefix(path, "/")
+	idx := strings.Index(p, "/")
+	if idx < 0 || len(p) == 0 {
+		return path
+	}
+	return path[:idx+2]
+}
+
 // Returns an HTTP handler that generates metrics for the given handler.
 func HTTPHandler(h http.Handler, pathFormater ...PathFormater) http.Handler {
+	if len(pathFormater) == 0 {
+		pathFormater = append(pathFormater, DefaultPathFormater)
+	}
+
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
 
@@ -139,6 +161,7 @@ func HTTPHandler(h http.Handler, pathFormater ...PathFormater) http.Handler {
 		statusCode := strconv.Itoa(rw.statusCode)
 
 		h.ServeHTTP(&rw, r)
+
 		inboundHTTPRequests.With(prometheus.Labels{
 			methodLabel: r.Method,
 			pathLabel:   path,
@@ -155,6 +178,10 @@ func HTTPHandler(h http.Handler, pathFormater ...PathFormater) http.Handler {
 
 // Return an HTTP transport that generates metrics for the given transport.
 func HTTPTransport(t http.RoundTripper, pathFormater ...PathFormater) http.RoundTripper {
+	if len(pathFormater) == 0 {
+		pathFormater = append(pathFormater, DefaultPathFormater)
+	}
+
 	return transport{
 		RoundTripper:  t,
 		pathFormaters: pathFormater,
