@@ -1,7 +1,9 @@
 package metrics
 
 import (
+	"bufio"
 	"io"
+	"net"
 	"net/http"
 	"strconv"
 	"strings"
@@ -212,6 +214,14 @@ func (w *responseWriter) Write(b []byte) (int, error) {
 	n, err := w.ResponseWriter.Write(b)
 	w.observe(w.statusCode, n, err)
 	return n, err
+}
+
+func (w *responseWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
+	hj, ok := w.ResponseWriter.(http.Hijacker)
+	if !ok {
+		return nil, nil, errors.New("hijack is not supported").WithType("http-hijack-not-supported")
+	}
+	return hj.Hijack()
 }
 
 type readCloser struct {

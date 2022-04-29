@@ -20,14 +20,10 @@ func TestHTTP(t *testing.T) {
 
 		w.Write([]byte("Hello, "))
 		w.Write(name)
-	}), func(path string) string {
-		return path
-	}))
+	})))
 	defer s.Close()
 
-	transport := HTTPTransport(http.DefaultTransport, func(path string) string {
-		return path
-	})
+	transport := HTTPTransport(http.DefaultTransport)
 
 	t.Run("no payload is sent returns 400", func(t *testing.T) {
 		req := httptest.NewRequest(http.MethodPost, s.URL, nil)
@@ -51,6 +47,31 @@ func TestHTTP(t *testing.T) {
 		greet, err := io.ReadAll(res.Body)
 		require.NoError(t, err)
 		require.Equal(t, "Hello, Ted", string(greet))
+	})
+}
+
+func TestResponseWriterHijack(t *testing.T) {
+	t.Run("underlying writer is a hijacker", func(t *testing.T) {
+		s := httptest.NewServer(http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
+			w := makeResponseWriter(res, func(statusCode, bytes int, err error) {})
+			conn, rw, err := w.Hijack()
+			require.NotNil(t, conn)
+			require.NotNil(t, rw)
+			require.NoError(t, err)
+			conn.Close()
+		}))
+
+		_, err := s.Client().Get(s.URL)
+		require.Error(t, err)
+
+	})
+
+	t.Run("underlying writer is not a hijacker", func(t *testing.T) {
+		w := makeResponseWriter(httptest.NewRecorder(), func(statusCode, bytes int, err error) {})
+		conn, rw, err := w.Hijack()
+		require.Nil(t, conn)
+		require.Nil(t, rw)
+		require.Error(t, err)
 	})
 }
 
