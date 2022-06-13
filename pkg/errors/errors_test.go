@@ -230,6 +230,18 @@ func TestError(t *testing.T) {
 	})
 }
 
+func TestMessage(t *testing.T) {
+	t.Run("enriched error message is returned", func(t *testing.T) {
+		err := New("hello").WithTag("name", "buu")
+		require.Equal(t, "hello", Message(err))
+	})
+
+	t.Run("standard error message is returned", func(t *testing.T) {
+		err := fmt.Errorf("hello world")
+		require.Equal(t, "hello world", Message(err))
+	})
+}
+
 func TestToString(t *testing.T) {
 	utests := []struct {
 		in  interface{}

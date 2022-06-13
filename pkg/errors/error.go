@@ -138,6 +138,15 @@ func Tag(err error, k string) string {
 	}
 }
 
+// Message returns the error message.
+func Message(err error) string {
+	if err, ok := err.(Error); ok {
+		return err.Message()
+	}
+
+	return err.Error()
+}
+
 // Error is the interface that describes an enriched error.
 type Error interface {
 	error
