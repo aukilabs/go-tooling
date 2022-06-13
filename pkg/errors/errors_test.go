@@ -175,10 +175,7 @@ func TestTags(t *testing.T) {
 
 	t.Run("error tags are returned", func(t *testing.T) {
 		err := New("err").WithTag("foo", "bar")
-
-		tags := err.Tags()
-		require.Len(t, tags, 1)
-		require.Equal(t, KVPair{Key: "foo", Value: "bar"}, tags[0])
+		require.Equal(t, map[string]string{"foo": "bar"}, err.Tags())
 	})
 }
 

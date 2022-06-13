@@ -171,7 +171,7 @@ type Error interface {
 	Tag(k string) string
 
 	// Returns the tags as a list of key-value pairs.
-	Tags() []KVPair
+	Tags() map[string]string
 
 	// Wraps the given error.
 	Wrap(err error) Error
@@ -247,17 +247,8 @@ func (e richError) Tag(k string) string {
 	return e.tags[k]
 }
 
-func (e richError) Tags() []KVPair {
-	if len(e.tags) == 0 {
-		return nil
-	}
-
-	tags := make([]KVPair, 0, len(e.tags))
-	for k, v := range e.tags {
-		tags = append(tags, KVPair{Key: k, Value: v})
-	}
-
-	return tags
+func (e richError) Tags() map[string]string {
+	return e.tags
 }
 
 func (e richError) Wrap(err error) Error {
@@ -309,11 +300,6 @@ func (e richError) Is(err error) bool {
 		rerr.definedType == e.definedType &&
 		reflect.DeepEqual(rerr.tags, e.tags) &&
 		rerr.wrappedErr == e.wrappedErr
-}
-
-type KVPair struct {
-	Key   string
-	Value string
 }
 
 func toString(v any) string {
