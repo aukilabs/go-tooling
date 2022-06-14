@@ -10,14 +10,15 @@ import (
 )
 
 var (
-	// Logger is the function to log a log entry.
-	Logger = func(e Entry) {
-		fmt.Println(e)
-	}
-
 	// The function to encode log entries and their tags.
 	Encoder func(any) ([]byte, error)
 )
+
+// Set the function that logs an entry.
+func SetLogger(l func(Entry)) {
+	logger = l
+	SetLevel(currentLevel)
+}
 
 // Available log levels.
 const (
@@ -73,11 +74,11 @@ func (l Level) String() string {
 
 // Sets what log levels are logged. Levels under the given level are ignored.
 func SetLevel(v Level) {
-	for l := ErrorLevel; l >= 0; l-- {
-		if v >= l {
-			loggers[l] = Logger
+	for i := DebugLevel; i <= ErrorLevel; i++ {
+		if i < v {
+			loggers[i] = empytLogger
 		} else {
-			loggers[l] = func(e Entry) {}
+			loggers[i] = logger
 		}
 	}
 }
@@ -143,12 +144,16 @@ type Entry interface {
 }
 
 var (
-	loggers = make(map[Level]func(Entry), ErrorLevel+1)
+	loggers       = make(map[Level]func(Entry), ErrorLevel+1)
+	logger        func(e Entry)
+	defaultLogger = func(e Entry) { fmt.Println(e) }
+	empytLogger   = func(Entry) {}
+	currentLevel  Level
 )
 
 func init() {
-	SetLevel(InfoLevel)
 	SetInlineEncoder()
+	SetLogger(defaultLogger)
 }
 
 func log(e Entry) {
@@ -246,7 +251,7 @@ func (e entry) MarshalJSON() ([]byte, error) {
 
 	if err, ok := e.err.(errors.Error); ok {
 		line = err.Line()
-		typ = errors.Type(err)
+		typ = err.Type()
 		wrappedErr = err.Unwrap()
 
 		if e.tags == nil {
