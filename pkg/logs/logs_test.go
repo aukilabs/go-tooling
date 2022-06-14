@@ -146,7 +146,7 @@ func TestEntryGetError(t *testing.T) {
 		t.Log(e)
 	})
 
-	New().Error(err)
+	Error(err)
 }
 
 func TestEntryTags(t *testing.T) {

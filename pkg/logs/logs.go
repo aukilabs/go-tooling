@@ -104,7 +104,12 @@ func New() Entry {
 
 // Creates a log entry and set the given tag.
 func WithTag(k string, v any) Entry {
-	return entry{}.WithTag(k, v)
+	return New().WithTag(k, v)
+}
+
+// Logs an error.
+func Error(err error) {
+	New().Error(err)
 }
 
 type Entry interface {
