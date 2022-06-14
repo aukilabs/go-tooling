@@ -31,7 +31,7 @@ logs.WithTag("type", "simulation").
 	Error(errors.New("an error"))
 ```
 
-_Note that errors created with `errors` package enrich logs by default._
+_Note that errors created with `errors` package enriches logs by default._
 
 ### Debug
 
