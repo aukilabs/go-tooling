@@ -175,10 +175,7 @@ func TestTags(t *testing.T) {
 
 	t.Run("error tags are returned", func(t *testing.T) {
 		err := New("err").WithTag("foo", "bar")
-
-		tags := err.Tags()
-		require.Len(t, tags, 1)
-		require.Equal(t, KVPair{Key: "foo", Value: "bar"}, tags[0])
+		require.Equal(t, map[string]string{"foo": "bar"}, err.Tags())
 	})
 }
 
@@ -227,6 +224,18 @@ func TestError(t *testing.T) {
 		require.Contains(t, err, "err")
 		require.Contains(t, err, "errors.richError")
 		t.Log(err)
+	})
+}
+
+func TestMessage(t *testing.T) {
+	t.Run("enriched error message is returned", func(t *testing.T) {
+		err := New("hello").WithTag("name", "buu")
+		require.Equal(t, "hello", Message(err))
+	})
+
+	t.Run("standard error message is returned", func(t *testing.T) {
+		err := fmt.Errorf("hello world")
+		require.Equal(t, "hello world", Message(err))
 	})
 }
 

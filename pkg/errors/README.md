@@ -20,13 +20,13 @@ err := errors.Newf("error message with format: %v", 42) // With a formatted mess
 ### Enrich With A Custom Type
 
 ```go
-err := New("handling http request failed").WithType("httpError")
+err := errors.New("handling http request failed").WithType("httpError")
 ```
 
 ### Enrich With Tags
 
 ```go
-err := New("handing http request failed").
+err := errors.New("handing http request failed").
     WithTag("method", "GET").
     WithTag("path", "/cookies").
     WithTag("code", 401)
@@ -41,7 +41,7 @@ err := errors.New("handling http request failed").Wrap(fmt.Errorf("a fake simple
 ### Compose Multiple Enrichments
 
 ```go
-err := New("handing http request failed").
+err := errors.New("handing http request failed").
     WithType("httpError").
     WithTag("method", "GET").
     WithTag("path", "/cookies").
