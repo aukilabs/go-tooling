@@ -138,6 +138,15 @@ func TestEntry(t *testing.T) {
 	})
 }
 
+func TestEntryTime(t *testing.T) {
+	SetLogger(func(e Entry) {
+		require.NotZero(t, e.Time())
+		t.Log(e)
+	})
+
+	New().Debug("hi")
+}
+
 func TestEntryGetError(t *testing.T) {
 	err := errors.New("test")
 

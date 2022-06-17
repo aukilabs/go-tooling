@@ -113,6 +113,9 @@ func Error(err error) {
 }
 
 type Entry interface {
+	// Return the time when the entry was created.
+	Time() time.Time
+
 	// Returns the log level.
 	Level() Level
 
@@ -146,6 +149,9 @@ type Entry interface {
 
 	// Returns the error used to create the entry.
 	GetError() error
+
+	// Return the entry as a string.
+	String() string
 }
 
 var (
@@ -171,6 +177,10 @@ type entry struct {
 	message string
 	tags    map[string]string
 	err     error
+}
+
+func (e entry) Time() time.Time {
+	return e.time
 }
 
 func (e entry) Level() Level {
