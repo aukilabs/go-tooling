@@ -74,6 +74,8 @@ func (l Level) String() string {
 
 // Sets what log levels are logged. Levels under the given level are ignored.
 func SetLevel(v Level) {
+	currentLevel = v
+
 	for i := DebugLevel; i <= ErrorLevel; i++ {
 		if i < v {
 			loggers[i] = empytLogger
