@@ -26,15 +26,15 @@ type Logger struct {
 	SDKVersionFamily string
 
 	// The printer to print on console. Default is fmt.Println.
-	Printer func(v ...any)
+	Printer func(format string, v ...any)
 }
 
 func (l Logger) Log(e logs.Entry) {
-	print := func(v ...any) { fmt.Println(v...) }
+	print := func(format string, v ...any) { fmt.Printf(format, v...) }
 	if l.Printer != nil {
 		print = l.Printer
 	}
-	print(e)
+	print("%s", e)
 
 	l.Pusher.NewEvent(logEvent{
 		AppKey:         e.Tags()[AppKeyTag],
