@@ -16,7 +16,7 @@ func TestLogger(t *testing.T) {
 			BatchSize:     100,
 			FlushInterval: time.Minute,
 		},
-		Printer: t.Log,
+		Printer: t.Logf,
 	}
 
 	logs.SetLogger(l.Log)
