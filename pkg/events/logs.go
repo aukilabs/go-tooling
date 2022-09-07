@@ -30,7 +30,9 @@ type Logger struct {
 }
 
 func (l Logger) Log(e logs.Entry) {
-	print := func(format string, v ...any) { fmt.Printf(format, v...) }
+	print := func(format string, v ...any) {
+		fmt.Printf(format+"\n", v...)
+	}
 	if l.Printer != nil {
 		print = l.Printer
 	}
