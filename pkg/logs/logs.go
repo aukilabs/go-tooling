@@ -130,7 +130,7 @@ type Entry interface {
 	WithTag(k string, v any) Entry
 
 	// Returns the log tags.
-	Tags() map[string]string
+	Tags() map[string]any
 
 	// Logs the given values with debug level.
 	Debug(v ...any)
@@ -184,7 +184,7 @@ type entry struct {
 	time    time.Time
 	level   Level
 	message string
-	tags    map[string]string
+	tags    map[string]any
 	err     error
 }
 
@@ -198,14 +198,14 @@ func (e entry) Level() Level {
 
 func (e entry) WithTag(k string, v any) Entry {
 	if e.tags == nil {
-		e.tags = make(map[string]string)
+		e.tags = make(map[string]any)
 	}
 
-	e.tags[k] = toString(v)
+	e.tags[k] = serialize(v)
 	return e
 }
 
-func (e entry) Tags() map[string]string {
+func (e entry) Tags() map[string]any {
 	return e.tags
 }
 
@@ -278,23 +278,19 @@ func (e entry) MarshalJSON() ([]byte, error) {
 		typ = err.Type()
 		wrappedErr = err.Unwrap()
 
-		if e.tags == nil {
-			e.tags = err.Tags()
-		} else {
-			for k, v := range err.Tags() {
-				e.tags[k] = v
-			}
+		for k, v := range err.Tags() {
+			e.tags[k] = v
 		}
 	}
 
 	return Encoder(struct {
-		Time    time.Time         `json:"time"`
-		Level   string            `json:"level"`
-		Message string            `json:"message"`
-		Line    string            `json:"line,omitempty"`
-		Type    string            `json:"type,omitempty"`
-		Tags    map[string]string `json:"tags,omitempty"`
-		Wrap    error             `json:"wrap,omitempty"`
+		Time    time.Time      `json:"time"`
+		Level   string         `json:"level"`
+		Message string         `json:"message"`
+		Line    string         `json:"line,omitempty"`
+		Type    string         `json:"type,omitempty"`
+		Tags    map[string]any `json:"tags,omitempty"`
+		Wrap    error          `json:"wrap,omitempty"`
 	}{
 		Time:    e.time,
 		Level:   e.level.String(),
@@ -306,7 +302,7 @@ func (e entry) MarshalJSON() ([]byte, error) {
 	})
 }
 
-func toString(v any) string {
+func serialize(v any) any {
 	switch v := v.(type) {
 	case string:
 		return v
@@ -315,26 +311,26 @@ func toString(v any) string {
 		return v.Error()
 
 	case int:
-		return strconv.FormatInt(int64(v), 10)
+		return v
 	case int64:
-		return strconv.FormatInt(v, 10)
+		return v
 	case int32:
-		return strconv.FormatInt(int64(v), 10)
+		return v
 	case int16:
-		return strconv.FormatInt(int64(v), 10)
+		return v
 	case int8:
-		return strconv.FormatInt(int64(v), 10)
+		return v
 
 	case uint:
-		return strconv.FormatUint(uint64(v), 10)
+		return v
 	case uint64:
-		return strconv.FormatUint(v, 10)
+		return v
 	case uint32:
-		return strconv.FormatUint(uint64(v), 10)
+		return v
 	case uint16:
-		return strconv.FormatUint(uint64(v), 10)
+		return v
 	case uint8:
-		return strconv.FormatUint(uint64(v), 10)
+		return v
 
 	case float64:
 		return strconv.FormatFloat(v, 'f', -1, 64)

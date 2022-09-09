@@ -160,13 +160,13 @@ func TestEntryGetError(t *testing.T) {
 
 func TestEntryTags(t *testing.T) {
 	e := WithTag("hello", "max")
-	require.Equal(t, map[string]string{"hello": "max"}, e.Tags())
+	require.Equal(t, map[string]any{"hello": "max"}, e.Tags())
 }
 
-func TestToString(t *testing.T) {
+func TestSerialize(t *testing.T) {
 	SetInlineEncoder()
 
-	utests := []struct {
+	stringValues := []struct {
 		in  interface{}
 		out string
 	}{
@@ -181,46 +181,6 @@ func TestToString(t *testing.T) {
 		{
 			in:  []byte("bye"),
 			out: "bye",
-		},
-		{
-			in:  -42,
-			out: "-42",
-		},
-		{
-			in:  int64(-42),
-			out: "-42",
-		},
-		{
-			in:  int32(-42),
-			out: "-42",
-		},
-		{
-			in:  int16(-42),
-			out: "-42",
-		},
-		{
-			in:  int8(-42),
-			out: "-42",
-		},
-		{
-			in:  uint(84),
-			out: "84",
-		},
-		{
-			in:  uint64(84),
-			out: "84",
-		},
-		{
-			in:  uint32(84),
-			out: "84",
-		},
-		{
-			in:  uint16(84),
-			out: "84",
-		},
-		{
-			in:  uint8(84),
-			out: "84",
 		},
 		{
 			in:  42.42,
@@ -248,9 +208,28 @@ func TestToString(t *testing.T) {
 		},
 	}
 
-	for _, u := range utests {
+	for _, u := range stringValues {
 		t.Run(reflect.TypeOf(u.in).String(), func(t *testing.T) {
-			require.Equal(t, u.out, toString(u.in))
+			require.Equal(t, u.out, serialize(u.in))
+		})
+	}
+
+	intValues := []any{
+		-42,
+		int64(-42),
+		int32(-42),
+		int16(-42),
+		int8(-42),
+		uint(84),
+		uint64(84),
+		uint32(84),
+		uint16(84),
+		uint8(84),
+	}
+
+	for _, val := range intValues {
+		t.Run(reflect.TypeOf(val).String(), func(t *testing.T) {
+			require.Equal(t, reflect.TypeOf(val), reflect.TypeOf(serialize(val)))
 		})
 	}
 }

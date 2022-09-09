@@ -56,7 +56,7 @@ func (l Logger) Log(e logs.Entry) {
 }
 
 type logEvent struct {
-	AppKey         string `json:"app_key,omitempty"`
+	AppKey         any    `json:"app_key,omitempty"`
 	AppID          string `json:"application_identifier,omitempty"`
 	AppProductName string `json:"application_product_name,omitempty"`
 	AppVersion     string `json:"application_version,omitempty"`
@@ -69,8 +69,8 @@ type logEvent struct {
 	DeviceType     string `json:"device_type,omitempty"`
 	Event          string `json:"event,omitempty"`
 	ID             string `json:"id,omitempty"`
-	ParticipantID  string `json:"participant_id,omitempty"`
-	SpaceID        string `json:"space_id,omitempty"`
+	ParticipantID  any    `json:"participant_id,omitempty"`
+	SpaceID        any    `json:"space_id,omitempty"`
 	Timestamp      int64  `json:"timestamp,omitempty"`
 }
 
