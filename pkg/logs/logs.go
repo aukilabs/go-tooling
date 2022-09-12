@@ -304,38 +304,14 @@ func (e entry) MarshalJSON() ([]byte, error) {
 
 func serialize(v any) any {
 	switch v := v.(type) {
-	case string:
+	case string,
+		int, int64, int32, int16, int8,
+		uint, uint64, uint32, uint16, uint8,
+		float64, float32:
 		return v
 
 	case error:
 		return v.Error()
-
-	case int:
-		return v
-	case int64:
-		return v
-	case int32:
-		return v
-	case int16:
-		return v
-	case int8:
-		return v
-
-	case uint:
-		return v
-	case uint64:
-		return v
-	case uint32:
-		return v
-	case uint16:
-		return v
-	case uint8:
-		return v
-
-	case float64:
-		return strconv.FormatFloat(v, 'f', -1, 64)
-	case float32:
-		return strconv.FormatFloat(float64(v), 'f', -1, 32)
 
 	case bool:
 		return strconv.FormatBool(v)
