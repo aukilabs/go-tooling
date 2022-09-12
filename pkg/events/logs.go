@@ -38,8 +38,12 @@ func (l Logger) Log(e logs.Entry) {
 	}
 	print("%s", e)
 
+	appKey, _ := e.Tags()[AppKeyTag].(string)
+	participantID, _ := e.Tags()[ParticipantIDTag].(string)
+	spaceID, _ := e.Tags()[SpaceIDTag].(string)
+
 	l.Pusher.NewEvent(logEvent{
-		AppKey:         e.Tags()[AppKeyTag],
+		AppKey:         appKey,
 		AukiSDKType:    l.SDKType,
 		AukiSDKVersion: l.SDKVersionFamily,
 		Data: logEventData{
@@ -48,15 +52,15 @@ func (l Logger) Log(e logs.Entry) {
 		},
 		DeviceOS:      runtime.GOOS,
 		DeviceType:    runtime.GOARCH,
-		ParticipantID: e.Tags()[ParticipantIDTag],
-		SpaceID:       e.Tags()[SpaceIDTag],
+		ParticipantID: participantID,
+		SpaceID:       spaceID,
 		Event:         "log",
 		Timestamp:     e.Time().UnixMilli(),
 	})
 }
 
 type logEvent struct {
-	AppKey         any    `json:"app_key,omitempty"`
+	AppKey         string `json:"app_key,omitempty"`
 	AppID          string `json:"application_identifier,omitempty"`
 	AppProductName string `json:"application_product_name,omitempty"`
 	AppVersion     string `json:"application_version,omitempty"`
@@ -69,8 +73,8 @@ type logEvent struct {
 	DeviceType     string `json:"device_type,omitempty"`
 	Event          string `json:"event,omitempty"`
 	ID             string `json:"id,omitempty"`
-	ParticipantID  any    `json:"participant_id,omitempty"`
-	SpaceID        any    `json:"space_id,omitempty"`
+	ParticipantID  string `json:"participant_id,omitempty"`
+	SpaceID        string `json:"space_id,omitempty"`
 	Timestamp      int64  `json:"timestamp,omitempty"`
 }
 
