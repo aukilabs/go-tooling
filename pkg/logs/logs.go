@@ -201,7 +201,7 @@ func (e entry) WithTag(k string, v any) Entry {
 		e.tags = make(map[string]any)
 	}
 
-	e.tags[k] = serialize(v)
+	e.tags[k] = normalizeTag(v)
 	return e
 }
 
@@ -302,7 +302,7 @@ func (e entry) MarshalJSON() ([]byte, error) {
 	})
 }
 
-func serialize(v any) any {
+func normalizeTag(v any) any {
 	switch v := v.(type) {
 	case string,
 		int, int64, int32, int16, int8,

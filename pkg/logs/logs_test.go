@@ -163,7 +163,7 @@ func TestEntryTags(t *testing.T) {
 	require.Equal(t, map[string]any{"hello": "max"}, e.Tags())
 }
 
-func TestSerialize(t *testing.T) {
+func TestNormalizeTag(t *testing.T) {
 	SetInlineEncoder()
 
 	stringValues := []struct {
@@ -210,7 +210,7 @@ func TestSerialize(t *testing.T) {
 
 	for _, u := range stringValues {
 		t.Run(reflect.TypeOf(u.in).String(), func(t *testing.T) {
-			require.Equal(t, u.out, serialize(u.in))
+			require.Equal(t, u.out, normalizeTag(u.in))
 		})
 	}
 
@@ -229,7 +229,7 @@ func TestSerialize(t *testing.T) {
 
 	for _, val := range intValues {
 		t.Run(reflect.TypeOf(val).String(), func(t *testing.T) {
-			require.Equal(t, reflect.TypeOf(val), reflect.TypeOf(serialize(val)))
+			require.Equal(t, reflect.TypeOf(val), reflect.TypeOf(normalizeTag(val)))
 		})
 	}
 }
