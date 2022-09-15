@@ -137,7 +137,7 @@ func (l *Pusher) flush(batch []Event, m flushMode) {
 		return
 	}
 
-	logs.WithTag("size", count).Debug("fushing event batch")
+	logs.WithTag("size", count).Debug("flushing event batch")
 
 	err := l.postEvents(batch)
 	if err != nil {
