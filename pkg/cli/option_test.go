@@ -468,3 +468,44 @@ func BenchmarkNormalizeOptionName(b *testing.B) {
 		normalizeOptionName(s, "-")
 	}
 }
+
+func TestParseTag(t *testing.T) {
+	utests := []struct {
+		scenario string
+		tag      string
+		value    string
+		modifier string
+	}{
+		{
+			scenario: "tag value",
+			tag:      "foo",
+			value:    "foo",
+		},
+		{
+			scenario: "tag value and empty modifer",
+			tag:      "foo,",
+			value:    "foo",
+			modifier: "",
+		},
+		{
+			scenario: "tag value and modifer",
+			tag:      "foo,hidden",
+			value:    "foo",
+			modifier: "hidden",
+		},
+		{
+			scenario: "empty tag value and modifer",
+			tag:      ",hidden",
+			value:    "",
+			modifier: "hidden",
+		},
+	}
+
+	for _, u := range utests {
+		t.Run(u.scenario, func(t *testing.T) {
+			value, modifier := parseTag(u.tag)
+			require.Equal(t, u.value, value)
+			require.Equal(t, u.modifier, modifier)
+		})
+	}
+}
