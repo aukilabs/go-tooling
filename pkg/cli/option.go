@@ -52,7 +52,7 @@ func (p *optionParser) parseStruct(prefix string, v reflect.Value) {
 		}
 
 		finfo := v.Type().Field(i)
-		fname := finfo.Tag.Get("cli")
+		fname, modifier := parseTag(finfo.Tag.Get("cli"))
 
 		if fname == "" {
 			fname = finfo.Name
@@ -69,10 +69,11 @@ func (p *optionParser) parseStruct(prefix string, v reflect.Value) {
 		}
 
 		o := option{
-			name:   fname,
-			help:   finfo.Tag.Get("help"),
-			envKey: envKey,
-			value:  fval,
+			name:     fname,
+			help:     finfo.Tag.Get("help"),
+			envKey:   envKey,
+			value:    fval,
+			isHidden: modifier == "hidden",
 		}
 
 		if envVal, ok := os.LookupEnv(envKey); ok && envKey != "-" {
@@ -87,11 +88,20 @@ func (p *optionParser) parseStruct(prefix string, v reflect.Value) {
 	}
 }
 
+func parseTag(tag string) (value string, modifier string) {
+	s := strings.SplitN(tag, ",", 2)
+	if len(s) == 2 {
+		modifier = s[1]
+	}
+	return s[0], modifier
+}
+
 type option struct {
-	name   string
-	help   string
-	envKey string
-	value  reflect.Value
+	name     string
+	help     string
+	envKey   string
+	value    reflect.Value
+	isHidden bool
 }
 
 func (o option) IsBoolFlag() bool {

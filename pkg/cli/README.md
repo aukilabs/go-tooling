@@ -11,17 +11,18 @@ Define a Go struct that uses field tags to describe a command configuration:
 
 ```go
 type config struct {
-	String string `cli:"string" env:"CONF_STRING" help:"A string argmument for demo purpose."`
-	Int    int    `cli:"int"    env:"CONF_INT"    help:"A int argmument for demo purpose."`
-	Help   bool   `cli:"h"      env:"-"           help:"Show help."`
+	String    string `cli:"string"            env:"CONF_STRING" help:"A string argmument for demo purpose."`
+	Int       int    `cli:"int"               env:"CONF_INT"    help:"A int argmument for demo purpose."`
+	HiddenInt int    `cli:"hidden-int,hidden" env:"CONF_INT"    help:"A int argmument for demo purpose."`
+	Help      bool   `cli:"h"                 env:"-"           help:"Show help."`
 }
 ```
 
-| Field Tag | Description                                                           |
-| --------- | --------------------------------------------------------------------- |
-| cli       | Maps a cli flag for the given field.                                  |
-| env       | Maps environment variable for the given field.                        |
-| help      | Setup a description for the given field when using the help flag `-h` |
+| Field Tag | Description                                                           | modifiers                              |
+| --------- | --------------------------------------------------------------------- | -------------------------------------- |
+| cli       | Maps a cli flag for the given field.                                  | `hidden`: Hides the option from usage. |
+| env       | Maps environment variable for the given field.                        |                                        |
+| help      | Setup a description for the given field when using the help flag `-h` |                                        |
 
 Load the config:
 
