@@ -256,13 +256,71 @@ func TestNormalizeTag(t *testing.T) {
 	}
 }
 
-func TestLogEntryNilTagsCrash(t *testing.T) {
+func TestEntryMarshalJSON(t *testing.T) {
 	SetLogger(func(e Entry) {
 		//fmt.Printf("%s", e)
 		json.Marshal(e)
 	})
 
-	require.NotPanics(t, func() {
-		New().Error(errors.New("test").WithTag("foo", nil))
+	testValues := []any{
+		"hello",
+		fmt.Errorf("hi"),
+		[]byte("bye"),
+		-42,
+		int64(-42),
+		int32(-42),
+		int16(-42),
+		int8(-42),
+		uint(84),
+		uint64(84),
+		uint32(84),
+		uint16(84),
+		uint8(84),
+		42.42,
+		float32(42.42),
+		true,
+		false,
+		time.Minute,
+		time.Now(),
+		map[string]string{"foo": "bar"},
+	}
+
+	for _, val := range testValues {
+		testName := "entry with tags: " + reflect.TypeOf(val).String()
+		t.Run(testName, func(t *testing.T) {
+			require.NotPanics(t, func() {
+				New().WithTag("foo", val).Info("test")
+			})
+		})
+	}
+
+	for _, val := range testValues {
+		testName := "entry without tags + error with tags: " + reflect.TypeOf(val).String()
+		t.Run(testName, func(t *testing.T) {
+			require.NotPanics(t, func() {
+				New().Error(errors.New("test").WithTag("foo", val))
+			})
+		})
+	}
+
+	for _, val := range testValues {
+		testName := "entry with tags + error with tags: " + reflect.TypeOf(val).String()
+		t.Run(testName, func(t *testing.T) {
+			require.NotPanics(t, func() {
+				New().WithTag("abc", "xyz").Error(errors.New("test").WithTag("foo", val))
+			})
+		})
+	}
+
+	t.Run("entry without tags + error without tags", func(t *testing.T) {
+		require.NotPanics(t, func() {
+			New().Error(errors.New("test"))
+		})
+	})
+
+	t.Run("entry with tags + error without tags", func(t *testing.T) {
+		require.NotPanics(t, func() {
+			New().WithTag("abc", "xyz").Error(errors.New("test"))
+		})
 	})
 }
