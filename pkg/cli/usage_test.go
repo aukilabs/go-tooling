@@ -43,6 +43,13 @@ func TestCommandUsage(t *testing.T) {
 			envKey: "BAR",
 			value:  reflect.ValueOf(0),
 		},
+		{
+			name:     "hidden",
+			help:     "This should not be displayed",
+			envKey:   "HIDDEN",
+			value:    reflect.ValueOf(""),
+			isHidden: true,
+		},
 	}
 
 	w := bytes.NewBufferString("\n")

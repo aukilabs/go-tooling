@@ -51,9 +51,13 @@ func commandUsage(w io.Writer, cmd *command, opts []option) func() {
 
 		optsInfo := optionsInfo(opts)
 		for _, o := range opts {
+			if o.isHidden {
+				continue
+			}
+
 			indent(w, 4)
 			fmt.Fprintf(w, "%s--%s%s", focusColor, o.name, defaultColor)
-			indent(w, optsInfo.nameLen-len(o.name)+2)
+			indent(w, optsInfo.nameLen-len(o.name)+1)
 
 			typeName := o.value.Type().String()
 			typeName = strings.TrimPrefix(typeName, "main.")

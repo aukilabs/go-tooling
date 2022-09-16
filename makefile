@@ -5,7 +5,7 @@ go-normalize:
 	@go fmt ./...
 	@go vet ./...
 
-release: test
+release: 
 ifdef VERSION
 	@echo "\033[94m\n• Releasing ${VERSION}\033[00m"
 	@git tag ${VERSION}
