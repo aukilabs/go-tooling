@@ -302,7 +302,16 @@ func TestEntryMarshalJSON(t *testing.T) {
 		})
 	}
 
-	t.Run("marshal enriched error", func(t *testing.T) {
+	t.Run("marshal enriched error without tags", func(t *testing.T) {
+		entry := entry{
+			err: errors.New("error test"),
+		}
+
+		_, err := json.Marshal(entry)
+		require.NoError(t, err)
+	})
+
+	t.Run("marshal enriched error with tags", func(t *testing.T) {
 		entry := entry{
 			err: errors.New("error test").WithTag("foo", "bar"),
 		}
