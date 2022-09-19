@@ -307,17 +307,8 @@ func (e entry) MarshalJSON() ([]byte, error) {
 
 func normalizeTag(v any) any {
 	switch v := v.(type) {
-	case string,
-		int, int64, int32, int16, int8,
-		uint, uint64, uint32, uint16, uint8,
-		float64, float32:
-		return v
-
 	case error:
 		return v.Error()
-
-	case bool:
-		return strconv.FormatBool(v)
 
 	case time.Duration:
 		return v.String()
@@ -326,7 +317,6 @@ func normalizeTag(v any) any {
 		return string(v)
 
 	default:
-		b, _ := Encoder(v)
-		return string(b)
+		return v
 	}
 }

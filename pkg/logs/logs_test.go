@@ -233,11 +233,11 @@ func TestNormalizeTag(t *testing.T) {
 		},
 		{
 			in:  true,
-			out: "true",
+			out: true,
 		},
 		{
 			in:  false,
-			out: "false",
+			out: false,
 		},
 		{
 			in:  time.Minute,
@@ -245,7 +245,7 @@ func TestNormalizeTag(t *testing.T) {
 		},
 		{
 			in:  map[string]string{"foo": "bar"},
-			out: `{"foo":"bar"}`,
+			out: map[string]string{"foo": "bar"},
 		},
 	}
 
@@ -257,70 +257,58 @@ func TestNormalizeTag(t *testing.T) {
 }
 
 func TestEntryMarshalJSON(t *testing.T) {
-	SetLogger(func(e Entry) {
-		//fmt.Printf("%s", e)
-		json.Marshal(e)
-	})
-
-	testValues := []any{
-		"hello",
-		fmt.Errorf("hi"),
-		[]byte("bye"),
-		-42,
-		int64(-42),
-		int32(-42),
-		int16(-42),
-		int8(-42),
-		uint(84),
-		uint64(84),
-		uint32(84),
-		uint16(84),
-		uint8(84),
-		42.42,
-		float32(42.42),
-		true,
-		false,
-		time.Minute,
-		time.Now(),
-		map[string]string{"foo": "bar"},
+	utest := []struct {
+		in           any
+		expectedJSON string
+	}{
+		{
+			in:           42,
+			expectedJSON: "42",
+		},
+		{
+			in:           42.42,
+			expectedJSON: "42.42",
+		},
+		{
+			in:           "bar",
+			expectedJSON: `"bar"`,
+		},
+		{
+			in:           []int{42, 21},
+			expectedJSON: `[42,21]`,
+		},
+		{
+			in:           map[string]int{"n": 42},
+			expectedJSON: `{"n":42}`,
+		},
+		{
+			in: struct {
+				Hello string
+			}{
+				Hello: "world",
+			},
+			expectedJSON: `{"Hello":"world"}`,
+		},
 	}
 
-	for _, val := range testValues {
-		testName := "entry with tags: " + reflect.TypeOf(val).String()
-		t.Run(testName, func(t *testing.T) {
-			require.NotPanics(t, func() {
-				New().WithTag("foo", val).Info("test")
-			})
-		})
-	}
+	for _, u := range utest {
+		t.Run(fmt.Sprintf("marshal %T", u.in), func(t *testing.T) {
+			entry := WithTag("foo", u.in)
+			b, err := json.Marshal(entry)
+			t.Log(string(b))
 
-	for _, val := range testValues {
-		testName := "entry without tags + error with tags: " + reflect.TypeOf(val).String()
-		t.Run(testName, func(t *testing.T) {
-			require.NotPanics(t, func() {
-				New().Error(errors.New("test").WithTag("foo", val))
-			})
-		})
-	}
-
-	for _, val := range testValues {
-		testName := "entry with tags + error with tags: " + reflect.TypeOf(val).String()
-		t.Run(testName, func(t *testing.T) {
-			require.NotPanics(t, func() {
-				New().WithTag("abc", "xyz").Error(errors.New("test").WithTag("foo", val))
-			})
+			require.NoError(t, err)
+			require.Contains(t, string(b), fmt.Sprintf(`"foo":%s`, u.expectedJSON))
 		})
 	}
 
-	t.Run("entry without tags + error without tags", func(t *testing.T) {
-		require.NotPanics(t, func() {
-			New().Error(errors.New("test"))
-		})
-	})
+	t.Run("marshal enriched error", func(t *testing.T) {
+		entry := entry{
+			err: errors.New("error test").WithTag("foo", "bar"),
+		}
 
-	t.Run("entry with tags + error without tags", func(t *testing.T) {
-		require.NotPanics(t, func() {
-			New().WithTag("abc", "xyz").Error(errors.New("test"))
-		})
+		b, err := json.Marshal(entry)
+		require.NoError(t, err)
+		require.Contains(t, string(b), `"foo":"bar"`)
 	})
 }
