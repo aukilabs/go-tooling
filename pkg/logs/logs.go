@@ -278,7 +278,7 @@ func (e entry) MarshalJSON() ([]byte, error) {
 		typ = err.Type()
 		wrappedErr = err.Unwrap()
 
-		if e.tags == nil {
+		if e.tags == nil && len(err.Tags()) != 0 {
 			e.tags = make(map[string]any)
 		}
 		for k, v := range err.Tags() {
