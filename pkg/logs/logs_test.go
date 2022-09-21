@@ -1,6 +1,7 @@
 package logs
 
 import (
+	"encoding/json"
 	"fmt"
 	"reflect"
 	"testing"
@@ -160,15 +161,15 @@ func TestEntryGetError(t *testing.T) {
 
 func TestEntryTags(t *testing.T) {
 	e := WithTag("hello", "max")
-	require.Equal(t, map[string]string{"hello": "max"}, e.Tags())
+	require.Equal(t, map[string]any{"hello": "max"}, e.Tags())
 }
 
-func TestToString(t *testing.T) {
+func TestNormalizeTag(t *testing.T) {
 	SetInlineEncoder()
 
-	utests := []struct {
+	testValues := []struct {
 		in  interface{}
-		out string
+		out any
 	}{
 		{
 			in:  "hello",
@@ -184,59 +185,59 @@ func TestToString(t *testing.T) {
 		},
 		{
 			in:  -42,
-			out: "-42",
+			out: -42,
 		},
 		{
 			in:  int64(-42),
-			out: "-42",
+			out: int64(-42),
 		},
 		{
 			in:  int32(-42),
-			out: "-42",
+			out: int32(-42),
 		},
 		{
 			in:  int16(-42),
-			out: "-42",
+			out: int16(-42),
 		},
 		{
 			in:  int8(-42),
-			out: "-42",
+			out: int8(-42),
 		},
 		{
 			in:  uint(84),
-			out: "84",
+			out: uint(84),
 		},
 		{
 			in:  uint64(84),
-			out: "84",
+			out: uint64(84),
 		},
 		{
 			in:  uint32(84),
-			out: "84",
+			out: uint32(84),
 		},
 		{
 			in:  uint16(84),
-			out: "84",
+			out: uint16(84),
 		},
 		{
 			in:  uint8(84),
-			out: "84",
+			out: uint8(84),
 		},
 		{
 			in:  42.42,
-			out: "42.42",
+			out: 42.42,
 		},
 		{
 			in:  float32(42.42),
-			out: "42.42",
+			out: float32(42.42),
 		},
 		{
 			in:  true,
-			out: "true",
+			out: true,
 		},
 		{
 			in:  false,
-			out: "false",
+			out: false,
 		},
 		{
 			in:  time.Minute,
@@ -244,13 +245,79 @@ func TestToString(t *testing.T) {
 		},
 		{
 			in:  map[string]string{"foo": "bar"},
-			out: `{"foo":"bar"}`,
+			out: map[string]string{"foo": "bar"},
 		},
 	}
 
-	for _, u := range utests {
+	for _, u := range testValues {
 		t.Run(reflect.TypeOf(u.in).String(), func(t *testing.T) {
-			require.Equal(t, u.out, toString(u.in))
+			require.Equal(t, u.out, normalizeTag(u.in))
 		})
 	}
+}
+
+func TestEntryMarshalJSON(t *testing.T) {
+	utest := []struct {
+		in           any
+		expectedJSON string
+	}{
+		{
+			in:           42,
+			expectedJSON: "42",
+		},
+		{
+			in:           42.42,
+			expectedJSON: "42.42",
+		},
+		{
+			in:           "bar",
+			expectedJSON: `"bar"`,
+		},
+		{
+			in:           []int{42, 21},
+			expectedJSON: `[42,21]`,
+		},
+		{
+			in:           map[string]int{"n": 42},
+			expectedJSON: `{"n":42}`,
+		},
+		{
+			in: struct {
+				Hello string
+			}{
+				Hello: "world",
+			},
+			expectedJSON: `{"Hello":"world"}`,
+		},
+	}
+
+	for _, u := range utest {
+		t.Run(fmt.Sprintf("marshal %T", u.in), func(t *testing.T) {
+			entry := WithTag("foo", u.in)
+			b, err := json.Marshal(entry)
+			t.Log(string(b))
+
+			require.NoError(t, err)
+			require.Contains(t, string(b), fmt.Sprintf(`"foo":%s`, u.expectedJSON))
+		})
+	}
+
+	t.Run("marshal enriched error without tags", func(t *testing.T) {
+		entry := entry{
+			err: errors.New("error test"),
+		}
+
+		_, err := json.Marshal(entry)
+		require.NoError(t, err)
+	})
+
+	t.Run("marshal enriched error with tags", func(t *testing.T) {
+		entry := entry{
+			err: errors.New("error test").WithTag("foo", "bar"),
+		}
+
+		b, err := json.Marshal(entry)
+		require.NoError(t, err)
+		require.Contains(t, string(b), `"foo":"bar"`)
+	})
 }

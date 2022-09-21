@@ -38,8 +38,12 @@ func (l Logger) Log(e logs.Entry) {
 	}
 	print("%s", e)
 
+	appKey, _ := e.Tags()[AppKeyTag].(string)
+	participantID, _ := e.Tags()[ParticipantIDTag].(string)
+	spaceID, _ := e.Tags()[SpaceIDTag].(string)
+
 	l.Pusher.NewEvent(logEvent{
-		AppKey:         e.Tags()[AppKeyTag],
+		AppKey:         appKey,
 		AukiSDKType:    l.SDKType,
 		AukiSDKVersion: l.SDKVersionFamily,
 		Data: logEventData{
@@ -48,8 +52,8 @@ func (l Logger) Log(e logs.Entry) {
 		},
 		DeviceOS:      runtime.GOOS,
 		DeviceType:    runtime.GOARCH,
-		ParticipantID: e.Tags()[ParticipantIDTag],
-		SpaceID:       e.Tags()[SpaceIDTag],
+		ParticipantID: participantID,
+		SpaceID:       spaceID,
 		Event:         "log",
 		Timestamp:     e.Time().UnixMilli(),
 	})
