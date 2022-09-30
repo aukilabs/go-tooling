@@ -107,7 +107,7 @@ func (l *Pusher) start() {
 	for {
 		select {
 		case <-ctx.Done():
-			l.flush(batch, noRequeue)
+			l.flush(batch)
 			l.wg.Done()
 			return
 
@@ -116,12 +116,12 @@ func (l *Pusher) start() {
 				batch = append(batch, e)
 			}
 			if len(batch) == l.BatchSize {
-				go l.flush(batch, requeueOnErr)
+				go l.flush(batch)
 				batch = l.newBatch()
 			}
 
 		case <-ticker.C:
-			go l.flush(batch, requeueOnErr)
+			go l.flush(batch)
 			batch = l.newBatch()
 		}
 	}
@@ -131,7 +131,7 @@ func (l *Pusher) newBatch() []Event {
 	return make([]Event, 0, l.BatchSize)
 }
 
-func (l *Pusher) flush(batch []Event, m flushMode) {
+func (l *Pusher) flush(batch []Event) {
 	count := len(batch)
 	if count == 0 {
 		return
@@ -139,19 +139,10 @@ func (l *Pusher) flush(batch []Event, m flushMode) {
 
 	logs.WithTag("size", count).Debug("flushing event batch")
 
-	err := l.postEvents(batch)
-	if err != nil {
+	if err := l.postEvents(batch); err != nil {
 		logs.Error(errors.New("flushing event batch failed").
 			WithTag("size", count).
 			Wrap(err))
-	}
-
-	if err == nil || m == noRequeue {
-		return
-	}
-
-	for _, e := range batch {
-		l.NewEvent(e)
 	}
 }
 
@@ -187,11 +178,6 @@ func (l *Pusher) postEvents(batch []Event) error {
 }
 
 type flushMode int
-
-const (
-	noRequeue flushMode = iota
-	requeueOnErr
-)
 
 type eventPayload struct {
 	Events []Event `json:"events"`

@@ -84,27 +84,6 @@ func TestPusher(t *testing.T) {
 	})
 }
 
-func TestPusherFlushRequeue(t *testing.T) {
-	initLogs(t)
-
-	count := 0
-	s := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		count++
-		w.WriteHeader(http.StatusInternalServerError)
-	}))
-	defer s.Close()
-
-	l := Pusher{
-		Endpoint: s.URL,
-	}
-	l.Start()
-
-	l.flush([]Event{42}, requeueOnErr)
-	l.Close()
-
-	require.Equal(t, 2, count)
-}
-
 func initLogs(t *testing.T) {
 	logs.Encoder = func(v any) ([]byte, error) {
 		return json.MarshalIndent(v, "", "  ")
