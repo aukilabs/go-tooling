@@ -10,7 +10,7 @@ import (
 // Tags that are mapped to a log event.
 const (
 	AppKeyTag        = "app-key"
-	SpaceIDTag       = "space-id"
+	SessionIDTag     = "session-id"
 	ParticipantIDTag = "participant-id"
 )
 
@@ -40,7 +40,7 @@ func (l Logger) Log(e logs.Entry) {
 
 	appKey, _ := e.Tags()[AppKeyTag].(string)
 	participantID, _ := e.Tags()[ParticipantIDTag].(string)
-	spaceID, _ := e.Tags()[SpaceIDTag].(string)
+	sessionID, _ := e.Tags()[SessionIDTag].(string)
 
 	l.Pusher.NewEvent(logEvent{
 		AppKey:         appKey,
@@ -53,7 +53,7 @@ func (l Logger) Log(e logs.Entry) {
 		DeviceOS:      runtime.GOOS,
 		DeviceType:    runtime.GOARCH,
 		ParticipantID: participantID,
-		SpaceID:       spaceID,
+		SessionID:     sessionID,
 		Event:         "log",
 		Timestamp:     e.Time().UnixMilli(),
 	})
@@ -74,7 +74,7 @@ type logEvent struct {
 	Event          string `json:"event,omitempty"`
 	ID             string `json:"id,omitempty"`
 	ParticipantID  string `json:"participant_id,omitempty"`
-	SpaceID        string `json:"space_id,omitempty"`
+	SessionID      string `json:"session_id,omitempty"`
 	Timestamp      int64  `json:"timestamp,omitempty"`
 }
 

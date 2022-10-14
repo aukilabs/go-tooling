@@ -115,7 +115,7 @@ func TestCommandeString(t *testing.T) {
 			expected: "test foo bar",
 		},
 		{
-			scenario: "command with elements with trailing spaces",
+			scenario: "command with elements with trailing sessions",
 			command:  []string{"\ttest    ", "foo\n", "     bar"},
 			expected: "test foo bar",
 		},

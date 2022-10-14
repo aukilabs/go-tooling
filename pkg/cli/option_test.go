@@ -417,7 +417,7 @@ func TestNormalizeOptionName(t *testing.T) {
 			expectedName: "hello-world",
 		},
 		{
-			scenario:     "name with space",
+			scenario:     "name with session",
 			baseName:     "hello World",
 			expectedName: "hello-world",
 		},
