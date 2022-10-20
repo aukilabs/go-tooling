@@ -20,7 +20,7 @@ const (
 
 var (
 	// The timeout duration to push events.
-	PushTimeout = time.Second * 15
+	PushTimeout = time.Second * 10
 )
 
 // A Pusher that pushes events to a remote endpoint.
