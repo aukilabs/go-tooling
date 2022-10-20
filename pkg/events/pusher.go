@@ -18,6 +18,11 @@ const (
 	DefaultQueueSize     = 4080
 )
 
+var (
+	// The timeout duration to push events.
+	PushTimeout = time.Second * 10
+)
+
 // A Pusher that pushes events to a remote endpoint.
 type Pusher struct {
 	// The endpoint where events are sent.
@@ -156,7 +161,10 @@ func (l *Pusher) postEvents(batch []Event) error {
 		return errors.New("encoding events failed").Wrap(err)
 	}
 
-	req, err := http.NewRequest(http.MethodPost, l.Endpoint, bytes.NewReader(body))
+	ctx, cancel := context.WithTimeout(context.Background(), PushTimeout)
+	defer cancel()
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, l.Endpoint, bytes.NewReader(body))
 	if err != nil {
 		return errors.New("creating request failed").Wrap(err)
 	}
@@ -176,8 +184,6 @@ func (l *Pusher) postEvents(batch []Event) error {
 
 	return nil
 }
-
-type flushMode int
 
 type eventPayload struct {
 	Events []Event `json:"events"`
