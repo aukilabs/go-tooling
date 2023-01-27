@@ -6,7 +6,11 @@ A package that provides basic HTTP mechanisms to build a rest API.
 
 ```go
 func main() {
-    var h handler
+    h := handler{
+        BaseHandler: rest.BaseHandler{
+			Encode: json.Marshal,
+			Decode: json.Unmarshal,
+    }
 
     api := rest.NewMux()
     api.HandleFunc(http.MethodGet, "/tests", handleGet)
