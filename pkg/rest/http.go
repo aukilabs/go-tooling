@@ -1,6 +1,7 @@
 package rest
 
 import (
+	"encoding/json"
 	"net/http"
 	"strconv"
 
@@ -53,8 +54,8 @@ func (m Mux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 // BaseHandler is a struct to embed that provides helper methods to handle a
 // RESTful API.
 type BaseHandler struct {
-	Encode func(any) ([]byte, error)
-	Decode func([]byte, any) error
+	Encoder func(any) ([]byte, error)
+	Decoder func([]byte, any) error
 }
 
 // Error writes an HTTP error.
@@ -107,9 +108,9 @@ func (h BaseHandler) Ok(w http.ResponseWriter, r *http.Request, v ...any) {
 	var err error
 
 	if len(v) == 1 {
-		body, err = h.Encode(v[0])
+		body, err = h.encode(v[0])
 	} else if len(v) != 0 {
-		body, err = h.Encode(v)
+		body, err = h.encode(v)
 	}
 	if err != nil {
 		h.InternalServerError(w, r, errors.New("encoding response failed").Wrap(err))
@@ -128,4 +129,18 @@ func (h BaseHandler) Ok(w http.ResponseWriter, r *http.Request, v ...any) {
 // NotModified writes a not modified response.
 func (h BaseHandler) NotModified(w http.ResponseWriter) {
 	w.WriteHeader(http.StatusNotModified)
+}
+
+func (h BaseHandler) encode(v any) ([]byte, error) {
+	if h.Encoder == nil {
+		return json.Marshal(v)
+	}
+	return h.Encoder(v)
+}
+
+func (h BaseHandler) decode(b []byte, r any) error {
+	if h.Decoder == nil {
+		return json.Unmarshal(b, r)
+	}
+	return h.Decoder(b, r)
 }
