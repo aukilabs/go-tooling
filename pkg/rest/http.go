@@ -119,7 +119,6 @@ func (h BaseHandler) Ok(w http.ResponseWriter, r *http.Request, v ...any) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Content-Length", strconv.Itoa(len(body)))
-	w.WriteHeader(http.StatusOK)
 	if len(body) == 0 {
 		return
 	}
