@@ -20,10 +20,10 @@ func TestHTTP(t *testing.T) {
 
 		w.Write([]byte("Hello, "))
 		w.Write(name)
-	})))
+	}), "v0.0.0"))
 	defer s.Close()
 
-	transport := HTTPTransport(http.DefaultTransport)
+	transport := HTTPTransport(http.DefaultTransport, "v0.0.0")
 
 	t.Run("no payload is sent returns 400", func(t *testing.T) {
 		req := httptest.NewRequest(http.MethodPost, s.URL, nil)
