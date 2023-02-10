@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/aukilabs/go-tooling/pkg/errors"
@@ -20,96 +21,109 @@ const (
 	endpointLabel  = "endpoint"
 	statusLabel    = "status"
 	errorTypeLabel = "error_type"
-	versionLabel   = "version"
 )
 
 var (
-	inboundHTTPRequests = promauto.NewCounterVec(prometheus.CounterOpts{
-		Name: "inbound_http_requests",
-		Help: "The number of inbound http requests.",
-	}, []string{
-		methodLabel,
-		pathLabel,
-		statusLabel,
-		versionLabel,
-	})
-
-	inboundHTTPRequestLatencies = promauto.NewHistogramVec(prometheus.HistogramOpts{
-		Name: "inbound_http_request_latencies",
-		Help: "The time to process inbound http requests.",
-	}, []string{
-		methodLabel,
-		pathLabel,
-		statusLabel,
-		versionLabel,
-	})
-
-	inboundHTTPRequestReceivedBytes = promauto.NewCounterVec(prometheus.CounterOpts{
-		Name: "inbound_http_request_received_bytes",
-		Help: "The number of bytes received from inbound HTTP requests.",
-	}, []string{
-		methodLabel,
-		pathLabel,
-		errorTypeLabel,
-		versionLabel,
-	})
-
-	inboundHTTPRequestSentBytes = promauto.NewCounterVec(prometheus.CounterOpts{
-		Name: "inbound_http_request_sent_bytes",
-		Help: "The number of bytes sent in inbound HTTP requests.",
-	}, []string{
-		methodLabel,
-		pathLabel,
-		errorTypeLabel,
-		versionLabel,
-	})
-
-	outboundHTTPRequests = promauto.NewCounterVec(prometheus.CounterOpts{
-		Name: "outbound_http_requests",
-		Help: "The number of outbound http requests.",
-	}, []string{
-		methodLabel,
-		endpointLabel,
-		pathLabel,
-		statusLabel,
-		errorTypeLabel,
-		versionLabel,
-	})
-
-	outboundHTTPRequestLatencies = promauto.NewHistogramVec(prometheus.HistogramOpts{
-		Name: "outbound_http_request_latencies",
-		Help: "The time to process outbound http requests.",
-	}, []string{
-		endpointLabel,
-		methodLabel,
-		pathLabel,
-		statusLabel,
-		errorTypeLabel,
-		versionLabel,
-	})
-
-	outboundHTTPRequestSentBytes = promauto.NewCounterVec(prometheus.CounterOpts{
-		Name: "outbound_http_request_sent_bytes",
-		Help: "The number of bytes sent in outbound HTTP requests.",
-	}, []string{
-		endpointLabel,
-		methodLabel,
-		pathLabel,
-		errorTypeLabel,
-		versionLabel,
-	})
-
-	outboundHTTPRequestReceivedBytes = promauto.NewCounterVec(prometheus.CounterOpts{
-		Name: "outbound_http_request_received_bytes",
-		Help: "The number of bytes received in outbound HTTP requests.",
-	}, []string{
-		endpointLabel,
-		methodLabel,
-		pathLabel,
-		errorTypeLabel,
-		versionLabel,
-	})
+	inboundHTTPRequests              *prometheus.CounterVec
+	inboundHTTPRequestLatencies      *prometheus.HistogramVec
+	inboundHTTPRequestReceivedBytes  *prometheus.CounterVec
+	inboundHTTPRequestSentBytes      *prometheus.CounterVec
+	outboundHTTPRequests             *prometheus.CounterVec
+	outboundHTTPRequestLatencies     *prometheus.HistogramVec
+	outboundHTTPRequestSentBytes     *prometheus.CounterVec
+	outboundHTTPRequestReceivedBytes *prometheus.CounterVec
+	initOnce                         sync.Once
 )
+
+func Init(constLabels prometheus.Labels) {
+	initOnce.Do(func() {
+		inboundHTTPRequests = promauto.NewCounterVec(prometheus.CounterOpts{
+			Name:        "inbound_http_requests",
+			Help:        "The number of inbound http requests.",
+			ConstLabels: constLabels,
+		}, []string{
+			methodLabel,
+			pathLabel,
+			statusLabel,
+		})
+
+		inboundHTTPRequestLatencies = promauto.NewHistogramVec(prometheus.HistogramOpts{
+			Name:        "inbound_http_request_latencies",
+			Help:        "The time to process inbound http requests.",
+			ConstLabels: constLabels,
+		}, []string{
+			methodLabel,
+			pathLabel,
+			statusLabel,
+		})
+
+		inboundHTTPRequestReceivedBytes = promauto.NewCounterVec(prometheus.CounterOpts{
+			Name:        "inbound_http_request_received_bytes",
+			Help:        "The number of bytes received from inbound HTTP requests.",
+			ConstLabels: constLabels,
+		}, []string{
+			methodLabel,
+			pathLabel,
+			errorTypeLabel,
+		})
+
+		inboundHTTPRequestSentBytes = promauto.NewCounterVec(prometheus.CounterOpts{
+			Name:        "inbound_http_request_sent_bytes",
+			Help:        "The number of bytes sent in inbound HTTP requests.",
+			ConstLabels: constLabels,
+		}, []string{
+			methodLabel,
+			pathLabel,
+			errorTypeLabel,
+		})
+
+		outboundHTTPRequests = promauto.NewCounterVec(prometheus.CounterOpts{
+			Name:        "outbound_http_requests",
+			Help:        "The number of outbound http requests.",
+			ConstLabels: constLabels,
+		}, []string{
+			methodLabel,
+			endpointLabel,
+			pathLabel,
+			statusLabel,
+			errorTypeLabel,
+		})
+
+		outboundHTTPRequestLatencies = promauto.NewHistogramVec(prometheus.HistogramOpts{
+			Name:        "outbound_http_request_latencies",
+			Help:        "The time to process outbound http requests.",
+			ConstLabels: constLabels,
+		}, []string{
+			endpointLabel,
+			methodLabel,
+			pathLabel,
+			statusLabel,
+			errorTypeLabel,
+		})
+
+		outboundHTTPRequestSentBytes = promauto.NewCounterVec(prometheus.CounterOpts{
+			Name:        "outbound_http_request_sent_bytes",
+			Help:        "The number of bytes sent in outbound HTTP requests.",
+			ConstLabels: constLabels,
+		}, []string{
+			endpointLabel,
+			methodLabel,
+			pathLabel,
+			errorTypeLabel,
+		})
+
+		outboundHTTPRequestReceivedBytes = promauto.NewCounterVec(prometheus.CounterOpts{
+			Name:        "outbound_http_request_received_bytes",
+			Help:        "The number of bytes received in outbound HTTP requests.",
+			ConstLabels: constLabels,
+		}, []string{
+			endpointLabel,
+			methodLabel,
+			pathLabel,
+			errorTypeLabel,
+		})
+	})
+}
 
 // A function that formats a path.
 //
@@ -138,7 +152,7 @@ func DefaultPathFormater(path string) string {
 }
 
 // Returns an HTTP handler that generates metrics for the given handler.
-func HTTPHandler(h http.Handler, version string, pathFormater ...PathFormater) http.Handler {
+func HTTPHandler(h http.Handler, pathFormater ...PathFormater) http.Handler {
 	if len(pathFormater) == 0 {
 		pathFormater = append(pathFormater, DefaultPathFormater)
 	}
@@ -157,7 +171,6 @@ func HTTPHandler(h http.Handler, version string, pathFormater ...PathFormater) h
 					methodLabel:    r.Method,
 					pathLabel:      path,
 					errorTypeLabel: errors.Type(err),
-					versionLabel:   version,
 				}).Add(float64(bytes))
 			})
 		}
@@ -167,7 +180,6 @@ func HTTPHandler(h http.Handler, version string, pathFormater ...PathFormater) h
 				methodLabel:    r.Method,
 				pathLabel:      path,
 				errorTypeLabel: errors.Type(err),
-				versionLabel:   version,
 			}).Add(float64(bytes))
 		})
 
@@ -176,23 +188,21 @@ func HTTPHandler(h http.Handler, version string, pathFormater ...PathFormater) h
 		h.ServeHTTP(&rw, r)
 
 		inboundHTTPRequests.With(prometheus.Labels{
-			methodLabel:  r.Method,
-			pathLabel:    path,
-			statusLabel:  statusCode,
-			versionLabel: version,
+			methodLabel: r.Method,
+			pathLabel:   path,
+			statusLabel: statusCode,
 		}).Inc()
 
 		inboundHTTPRequestLatencies.With(prometheus.Labels{
-			methodLabel:  r.Method,
-			pathLabel:    r.URL.Path,
-			statusLabel:  statusCode,
-			versionLabel: version,
+			methodLabel: r.Method,
+			pathLabel:   r.URL.Path,
+			statusLabel: statusCode,
 		}).Observe(time.Since(start).Seconds())
 	})
 }
 
 // Return an HTTP transport that generates metrics for the given transport.
-func HTTPTransport(t http.RoundTripper, version string, pathFormater ...PathFormater) http.RoundTripper {
+func HTTPTransport(t http.RoundTripper, pathFormater ...PathFormater) http.RoundTripper {
 	if len(pathFormater) == 0 {
 		pathFormater = append(pathFormater, DefaultPathFormater)
 	}
@@ -200,7 +210,6 @@ func HTTPTransport(t http.RoundTripper, version string, pathFormater ...PathForm
 	return transport{
 		RoundTripper:  t,
 		pathFormaters: pathFormater,
-		version:       version,
 	}
 }
 
@@ -260,7 +269,6 @@ func (r readCloser) Read(p []byte) (int, error) {
 type transport struct {
 	http.RoundTripper
 	pathFormaters []PathFormater
-	version       string
 }
 
 func (t transport) RoundTrip(req *http.Request) (*http.Response, error) {
@@ -278,7 +286,6 @@ func (t transport) RoundTrip(req *http.Request) (*http.Response, error) {
 				endpointLabel:  req.URL.Host,
 				pathLabel:      path,
 				errorTypeLabel: errors.Type(err),
-				versionLabel:   t.version,
 			}).Add(float64(bytes))
 		})
 	}
@@ -291,7 +298,6 @@ func (t transport) RoundTrip(req *http.Request) (*http.Response, error) {
 				endpointLabel:  req.URL.Host,
 				pathLabel:      path,
 				errorTypeLabel: errors.Type(err),
-				versionLabel:   t.version,
 			}).Add(float64(bytes))
 		})
 	}
@@ -307,7 +313,6 @@ func (t transport) RoundTrip(req *http.Request) (*http.Response, error) {
 		pathLabel:      path,
 		statusLabel:    statusCode,
 		errorTypeLabel: errors.Type(err),
-		versionLabel:   t.version,
 	}).Inc()
 
 	outboundHTTPRequestLatencies.With(prometheus.Labels{
@@ -316,7 +321,6 @@ func (t transport) RoundTrip(req *http.Request) (*http.Response, error) {
 		pathLabel:      path,
 		statusLabel:    statusCode,
 		errorTypeLabel: errors.Type(err),
-		versionLabel:   t.version,
 	}).Observe(time.Since(start).Seconds())
 
 	return res, err
