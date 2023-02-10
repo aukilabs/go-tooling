@@ -20,19 +20,12 @@ const (
 	endpointLabel  = "endpoint"
 	statusLabel    = "status"
 	errorTypeLabel = "error_type"
-	versionLabel   = "version"
 )
 
 var (
-	// The binary version number. Set at build.
-	version = "v0.0.0"
-
 	inboundHTTPRequests = promauto.NewCounterVec(prometheus.CounterOpts{
 		Name: "inbound_http_requests",
 		Help: "The number of inbound http requests.",
-		ConstLabels: map[string]string{
-			versionLabel: version,
-		},
 	}, []string{
 		methodLabel,
 		pathLabel,
@@ -42,9 +35,6 @@ var (
 	inboundHTTPRequestLatencies = promauto.NewHistogramVec(prometheus.HistogramOpts{
 		Name: "inbound_http_request_latencies",
 		Help: "The time to process inbound http requests.",
-		ConstLabels: map[string]string{
-			versionLabel: version,
-		},
 	}, []string{
 		methodLabel,
 		pathLabel,
@@ -54,9 +44,6 @@ var (
 	inboundHTTPRequestReceivedBytes = promauto.NewCounterVec(prometheus.CounterOpts{
 		Name: "inbound_http_request_received_bytes",
 		Help: "The number of bytes received from inbound HTTP requests.",
-		ConstLabels: map[string]string{
-			versionLabel: version,
-		},
 	}, []string{
 		methodLabel,
 		pathLabel,
@@ -66,9 +53,6 @@ var (
 	inboundHTTPRequestSentBytes = promauto.NewCounterVec(prometheus.CounterOpts{
 		Name: "inbound_http_request_sent_bytes",
 		Help: "The number of bytes sent in inbound HTTP requests.",
-		ConstLabels: map[string]string{
-			versionLabel: version,
-		},
 	}, []string{
 		methodLabel,
 		pathLabel,
@@ -78,9 +62,6 @@ var (
 	outboundHTTPRequests = promauto.NewCounterVec(prometheus.CounterOpts{
 		Name: "outbound_http_requests",
 		Help: "The number of outbound http requests.",
-		ConstLabels: map[string]string{
-			versionLabel: version,
-		},
 	}, []string{
 		methodLabel,
 		endpointLabel,
@@ -92,9 +73,6 @@ var (
 	outboundHTTPRequestLatencies = promauto.NewHistogramVec(prometheus.HistogramOpts{
 		Name: "outbound_http_request_latencies",
 		Help: "The time to process outbound http requests.",
-		ConstLabels: map[string]string{
-			versionLabel: version,
-		},
 	}, []string{
 		endpointLabel,
 		methodLabel,
@@ -106,9 +84,6 @@ var (
 	outboundHTTPRequestSentBytes = promauto.NewCounterVec(prometheus.CounterOpts{
 		Name: "outbound_http_request_sent_bytes",
 		Help: "The number of bytes sent in outbound HTTP requests.",
-		ConstLabels: map[string]string{
-			versionLabel: version,
-		},
 	}, []string{
 		endpointLabel,
 		methodLabel,
@@ -119,9 +94,6 @@ var (
 	outboundHTTPRequestReceivedBytes = promauto.NewCounterVec(prometheus.CounterOpts{
 		Name: "outbound_http_request_received_bytes",
 		Help: "The number of bytes received in outbound HTTP requests.",
-		ConstLabels: map[string]string{
-			versionLabel: version,
-		},
 	}, []string{
 		endpointLabel,
 		methodLabel,
