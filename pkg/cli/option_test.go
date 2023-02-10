@@ -338,7 +338,7 @@ func TestOptionParserParse(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.scenario, func(t *testing.T) {
-			flags := flag.NewFlagSet("test", flag.ContinueOnError)
+			flags := flag.NewFlagSet("test", flag.PanicOnError)
 			flags.SetOutput(writerNoop{})
 
 			p := optionParser{
@@ -360,6 +360,7 @@ func TestOptionParserParse(t *testing.T) {
 
 			if test.parseFlagsErr {
 				require.Panics(t, func() {
+					p.flags.ErrorHandling()
 					err = p.flags.Parse(test.args)
 				})
 				t.Log("error:", err)
