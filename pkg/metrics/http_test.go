@@ -11,7 +11,6 @@ import (
 )
 
 func TestHTTP(t *testing.T) {
-	Init(nil)
 	s := httptest.NewServer(HTTPHandler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		name, err := io.ReadAll(r.Body)
 		if err != nil || len(name) == 0 {
@@ -21,10 +20,10 @@ func TestHTTP(t *testing.T) {
 
 		w.Write([]byte("Hello, "))
 		w.Write(name)
-	})))
+	}), "v0.0.0"))
 	defer s.Close()
 
-	transport := HTTPTransport(http.DefaultTransport)
+	transport := HTTPTransport(http.DefaultTransport, "v0.0.0")
 
 	t.Run("no payload is sent returns 400", func(t *testing.T) {
 		req := httptest.NewRequest(http.MethodPost, s.URL, nil)
@@ -52,7 +51,6 @@ func TestHTTP(t *testing.T) {
 }
 
 func TestResponseWriterHijack(t *testing.T) {
-	Init(nil)
 	t.Run("underlying writer is a hijacker", func(t *testing.T) {
 		s := httptest.NewServer(http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
 			w := makeResponseWriter(res, func(statusCode, bytes int, err error) {})
