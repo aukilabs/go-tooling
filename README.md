@@ -17,3 +17,4 @@ make test
 ```sh
 make VERSION=v0.x.x release # Replace x by numbers
 ```
+
