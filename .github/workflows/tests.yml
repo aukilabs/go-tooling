@@ -7,6 +7,7 @@ jobs:
     uses: aukilabs/github-actions/.github/workflows/golang-workflow.yml@feature/argocd
     name: Run code check
     with:
+      golang_version: "1.18"
       enable_vet: true
     secrets:
       github_app_id: ${{ secrets.GLOBAL_GITHUB_APP_ID }}
@@ -15,6 +16,7 @@ jobs:
     uses: aukilabs/github-actions/.github/workflows/golang-workflow.yml@feature/argocd
     name: Run test suite
     with:
+      golang_version: "1.18"
       enable_test: true
       enable_docker_compose: false
     secrets:
