@@ -18,7 +18,6 @@ jobs:
     with:
       golang_version: "1.18"
       enable_test: true
-      enable_docker_compose: false
     secrets:
       github_app_id: ${{ secrets.GLOBAL_GITHUB_APP_ID }}
       github_app_private_key: ${{ secrets.GLOBAL_GITHUB_APP_PRIVATE_KEY }}
