@@ -109,13 +109,13 @@ var (
 //
 // This is to prevent paths like the ones which include identifiers to over
 // create metrics dimensions.
-type PathFormater func(path string) string
+type PathFormater func(*http.Request, string) string
 
 // The default path formater used when none is specified.
 //
 // The formater returns the first element of the path suffixed with a / when
 // there are multiple elements.
-func DefaultPathFormater(path string) string {
+func DefaultPathFormater(_ *http.Request, path string) string {
 	if !strings.HasPrefix(path, "/") {
 		path = "/" + path
 	}
@@ -139,7 +139,7 @@ func HTTPHandler(h http.Handler, pathFormater ...PathFormater) http.Handler {
 
 		path := r.URL.Path
 		for _, f := range pathFormater {
-			path = f(path)
+			path = f(r, path)
 		}
 
 		if r.Body != nil {
@@ -253,7 +253,7 @@ func (t transport) RoundTrip(req *http.Request) (*http.Response, error) {
 
 	path := req.URL.Path
 	for _, f := range t.pathFormaters {
-		path = f(path)
+		path = f(req, path)
 	}
 
 	if req.Body != nil {

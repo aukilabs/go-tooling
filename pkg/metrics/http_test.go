@@ -87,13 +87,18 @@ func TestDefaultPathFormater(t *testing.T) {
 		{in: "hello", out: "/hello"},
 	}
 
+	req, err := http.NewRequest(http.MethodGet, "/test", nil)
+	require.NoError(t, err)
+
 	for _, u := range utests {
-		require.Equal(t, u.out, DefaultPathFormater(u.in))
+		require.Equal(t, u.out, DefaultPathFormater(req, u.in))
 	}
 }
 
 func BenchmarkDefaultPathFormater(b *testing.B) {
+	req, err := http.NewRequest(http.MethodGet, "/test", nil)
+	require.NoError(b, err)
 	for n := 0; n < b.N; n++ {
-		DefaultPathFormater("/hello/world")
+		DefaultPathFormater(req, "/hello/world")
 	}
 }
