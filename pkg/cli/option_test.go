@@ -360,7 +360,8 @@ func TestOptionParserParse(t *testing.T) {
 
 			if test.parseFlagsErr {
 				require.Panics(t, func() {
-					err = p.flags.Parse(test.args)
+					panicFlags := flag.NewFlagSet("test", flag.PanicOnError)
+					err = panicFlags.Parse(test.args)
 				})
 				t.Log("error:", err)
 				return
