@@ -252,12 +252,12 @@ func (w *responseWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
 }
 
 type hijackWriter struct {
-	origWriter *bufio.Writer
-	statusCode int
+	origWriter       *bufio.Writer
+	statusCode       int
 	statusCodeSetter func(int)
 }
 
-func newHijackWriter(w *bufio.Writer, setter fn(int)) *hijackWriter {
+func newHijackWriter(w *bufio.Writer, setter func(int)) *hijackWriter {
 	h := hijackWriter{origWriter: w, statusCodeSetter: setter}
 	return &h
 }
