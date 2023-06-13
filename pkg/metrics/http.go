@@ -144,7 +144,7 @@ func HTTPHandler(h http.Handler, pathFormater ...PathFormater) http.Handler {
 		var sentBytes int
 		var sentErr error
 
-		// record metrics on exit for to statusCode dependent path formatting
+		// record metrics on exit for statusCode dependent path formatting
 		// which is available after handling the request
 		defer func() {
 			inboundHTTPRequestReceivedBytes.With(prometheus.Labels{
@@ -276,7 +276,7 @@ func (t transport) RoundTrip(req *http.Request) (*http.Response, error) {
 	var sentErr error
 	var handlingErr error
 
-	// record metrics on exit for to statusCode dependent path formatting
+	// record metrics on exit for statusCode dependent path formatting
 	// which is available after handling the request
 	defer func() {
 		outboundHTTPRequestSentBytes.With(prometheus.Labels{
