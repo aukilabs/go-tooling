@@ -296,10 +296,6 @@ func (h hijackWriter) extractStatusCode(buf []byte) int {
 	return code
 }
 
-func (h hijackWriter) extractStatusCode(buf []byte) int {
-
-}
-
 type readCloser struct {
 	io.ReadCloser
 
