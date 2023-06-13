@@ -212,9 +212,7 @@ type responseWriter struct {
 
 	observe      func(statusCode int, bytes int, err error)
 	statusCode   int
-	hijackWriter *bufio.Writer
-	buf          []byte
-	writter      *bytes.Buffer
+	hijackWriter *hijackWriter
 }
 
 func makeResponseWriter(w http.ResponseWriter, observe func(statusCode, bytes int, err error)) responseWriter {
@@ -245,10 +243,63 @@ func (w *responseWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
 	if err != nil {
 		return nil, nil, errors.New("hijack failed").Wrap(err)
 	}
-	w.hijackWriter = rw.Writer
-	w.writter = bytes.NewBuffer(w.buf)
-	hjWriter := bufio.NewWriter(w.writter)
+
+	w.hijackWriter = newHijackWriter(rw.Writer)
+	hjWriter := bufio.NewWriter(w.hijackWriter)
+
 	return conn, bufio.NewReadWriter(rw.Reader, hjWriter), nil
+}
+
+type hijackWriter struct {
+	buf []byte
+	*bytes.Buffer
+	origWriter *bufio.Writer
+	statusCode int
+}
+
+func newHijackWriter(w *bufio.Writer) *hijackWriter {
+	h := hijackWriter{origWriter: w}
+	bufWrt := bytes.NewBuffer(h.buf)
+	h.Buffer = bufWrt
+	return &h
+}
+
+func (h *hijackWriter) Write(b []byte) (int, error) {
+	n, err := h.origWriter.Write(b)
+	if err != nil {
+		return 0, errors.New("writing to original writter failed").Wrap(err)
+	}
+
+	_, err = h.Buffer.Write(b)
+	if err != nil {
+		return 0, errors.New("writing to buffer failed").Wrap(err)
+	}
+
+	if h.statusCode == 0 {
+		h.statusCode = h.extractStatusCode()
+	}
+
+	return n, err
+}
+
+func (h hijackWriter) extractStatusCode() int {
+	idx := strings.Index(string(h.buf), "\r")
+	if idx < 0 {
+		return 0
+	}
+
+	line := h.buf[:idx]
+	cols := strings.Split(string(line), " ")
+	if len(cols) < 2 {
+		return 0
+	}
+
+	code, err := strconv.Atoi(cols[1])
+	if err != nil {
+		return 0
+	}
+
+	return code
 }
 
 type readCloser struct {
