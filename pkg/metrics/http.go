@@ -2,6 +2,7 @@ package metrics
 
 import (
 	"bufio"
+	"bytes"
 	"io"
 	"net"
 	"net/http"
@@ -212,6 +213,8 @@ type responseWriter struct {
 	observe      func(statusCode int, bytes int, err error)
 	statusCode   int
 	hijackWriter *bufio.Writer
+	buf          []byte
+	writter      *bytes.Buffer
 }
 
 func makeResponseWriter(w http.ResponseWriter, observe func(statusCode, bytes int, err error)) responseWriter {
@@ -243,7 +246,9 @@ func (w *responseWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
 		return nil, nil, errors.New("hijack failed").Wrap(err)
 	}
 	w.hijackWriter = rw.Writer
-	return conn, rw, nil
+	w.writter = bytes.NewBuffer(w.buf)
+	hjWriter := bufio.NewWriter(w.writter)
+	return conn, bufio.NewReadWriter(rw.Reader, hjWriter), nil
 }
 
 type readCloser struct {
