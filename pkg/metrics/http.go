@@ -243,7 +243,9 @@ func (w *responseWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
 		return nil, nil, errors.New("hijack failed").Wrap(err)
 	}
 
-	w.hijackWriter = newHijackWriter(rw.Writer)
+	w.hijackWriter = newHijackWriter(rw.Writer, func(statusCode int) {
+		w.statusCode = statusCode
+	})
 	hjWriter := bufio.NewWriter(w.hijackWriter)
 
 	return conn, bufio.NewReadWriter(rw.Reader, hjWriter), nil
@@ -252,10 +254,11 @@ func (w *responseWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
 type hijackWriter struct {
 	origWriter *bufio.Writer
 	statusCode int
+	statusCodeSetter func(int)
 }
 
-func newHijackWriter(w *bufio.Writer) *hijackWriter {
-	h := hijackWriter{origWriter: w}
+func newHijackWriter(w *bufio.Writer, setter fn(int)) *hijackWriter {
+	h := hijackWriter{origWriter: w, statusCodeSetter: setter}
 	return &h
 }
 
@@ -267,6 +270,7 @@ func (h *hijackWriter) Write(b []byte) (int, error) {
 
 	if h.statusCode == 0 {
 		h.statusCode = h.extractStatusCode(b)
+		h.statusCodeSetter(h.statusCode)
 	}
 
 	return n, err
@@ -290,6 +294,10 @@ func (h hijackWriter) extractStatusCode(buf []byte) int {
 	}
 
 	return code
+}
+
+func (h hijackWriter) extractStatusCode(buf []byte) int {
+
 }
 
 type readCloser struct {
