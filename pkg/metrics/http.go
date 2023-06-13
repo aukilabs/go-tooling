@@ -209,8 +209,9 @@ func HTTPTransport(t http.RoundTripper, pathFormater ...PathFormater) http.Round
 type responseWriter struct {
 	http.ResponseWriter
 
-	observe    func(statusCode int, bytes int, err error)
-	statusCode int
+	observe      func(statusCode int, bytes int, err error)
+	statusCode   int
+	hijackWriter *bufio.Writer
 }
 
 func makeResponseWriter(w http.ResponseWriter, observe func(statusCode, bytes int, err error)) responseWriter {
@@ -237,7 +238,12 @@ func (w *responseWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
 	if !ok {
 		return nil, nil, errors.New("hijack is not supported").WithType("http-hijack-not-supported")
 	}
-	return hj.Hijack()
+	conn, rw, err := hj.Hijack()
+	if err != nil {
+		return nil, nil, errors.New("hijack failed").Wrap(err)
+	}
+	w.hijackWriter = rw.Writer
+	return conn, rw, nil
 }
 
 type readCloser struct {
