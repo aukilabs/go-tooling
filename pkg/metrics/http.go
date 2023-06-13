@@ -2,7 +2,6 @@ package metrics
 
 import (
 	"bufio"
-	"bytes"
 	"io"
 	"net"
 	"net/http"
@@ -251,16 +250,12 @@ func (w *responseWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
 }
 
 type hijackWriter struct {
-	buf []byte
-	*bytes.Buffer
 	origWriter *bufio.Writer
 	statusCode int
 }
 
 func newHijackWriter(w *bufio.Writer) *hijackWriter {
 	h := hijackWriter{origWriter: w}
-	bufWrt := bytes.NewBuffer(h.buf)
-	h.Buffer = bufWrt
 	return &h
 }
 
@@ -270,25 +265,20 @@ func (h *hijackWriter) Write(b []byte) (int, error) {
 		return 0, errors.New("writing to original writter failed").Wrap(err)
 	}
 
-	_, err = h.Buffer.Write(b)
-	if err != nil {
-		return 0, errors.New("writing to buffer failed").Wrap(err)
-	}
-
 	if h.statusCode == 0 {
-		h.statusCode = h.extractStatusCode()
+		h.statusCode = h.extractStatusCode(b)
 	}
 
 	return n, err
 }
 
-func (h hijackWriter) extractStatusCode() int {
-	idx := strings.Index(string(h.buf), "\r")
+func (h hijackWriter) extractStatusCode(buf []byte) int {
+	idx := strings.Index(string(buf), "\r")
 	if idx < 0 {
 		return 0
 	}
 
-	line := h.buf[:idx]
+	line := buf[:idx]
 	cols := strings.Split(string(line), " ")
 	if len(cols) < 2 {
 		return 0
