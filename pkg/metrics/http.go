@@ -258,8 +258,7 @@ type hijackWriter struct {
 }
 
 func newHijackWriter(w *bufio.Writer, setter func(int)) *hijackWriter {
-	h := hijackWriter{origWriter: w, statusCodeSetter: setter}
-	return &h
+	return &hijackWriter{origWriter: w, statusCodeSetter: setter}
 }
 
 func (h *hijackWriter) Write(b []byte) (int, error) {
