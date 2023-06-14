@@ -251,6 +251,8 @@ func (w *responseWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
 	return conn, bufio.NewReadWriter(rw.Reader, hjWriter), nil
 }
 
+// hijackWriter hijack a bufio.Writer's io.Writer because bufio.ReadWriter requires
+// a concrete bufio.Writer
 type hijackWriter struct {
 	origWriter       *bufio.Writer
 	statusCode       int
@@ -261,10 +263,17 @@ func newHijackWriter(w *bufio.Writer, setter func(int)) *hijackWriter {
 	return &hijackWriter{origWriter: w, statusCodeSetter: setter}
 }
 
+// Write implements io.Writer Write interface
 func (h *hijackWriter) Write(b []byte) (int, error) {
 	n, err := h.origWriter.Write(b)
 	if err != nil {
-		return 0, errors.New("writing to original writter failed").Wrap(err)
+		return 0, errors.New("writing to original writer failed").Wrap(err)
+	}
+	// since hijackWriter is encapsulated in a bufio.Writer, its Write method is called during Flush
+	// flushing the original bufio.Writer.
+	err = h.origWriter.Flush()
+	if err != nil {
+		return 0, errors.New("flushing original writer failed").Wrap(err)
 	}
 
 	if h.statusCode == 0 {
@@ -272,7 +281,7 @@ func (h *hijackWriter) Write(b []byte) (int, error) {
 		h.statusCodeSetter(h.statusCode)
 	}
 
-	return n, err
+	return n, nil
 }
 
 func (h hijackWriter) extractStatusCode(buf []byte) int {
