@@ -211,7 +211,7 @@ type responseWriter struct {
 
 	observe      func(statusCode int, bytes int, err error)
 	statusCode   int
-	hijackWriter *hijackWriter
+	hijackWriter hijackWriter
 }
 
 func makeResponseWriter(w http.ResponseWriter, observe func(statusCode, bytes int, err error)) responseWriter {
@@ -251,42 +251,41 @@ func (w *responseWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
 	return conn, bufio.NewReadWriter(rw.Reader, hjWriter), nil
 }
 
-// hijackWriter hijack a bufio.Writer's io.Writer because bufio.ReadWriter requires
-// a concrete bufio.Writer
+// hijackWriter implements the io.Writer interface to hijack a bufio.Writer's io.Writer
+// this way of hijacking is required because bufio.ReadWriter depends on concret bufio.Writer instead of an interface
 type hijackWriter struct {
 	origWriter       *bufio.Writer
-	statusCode       int
 	statusCodeSetter func(int)
 }
 
-func newHijackWriter(w *bufio.Writer, setter func(int)) *hijackWriter {
-	return &hijackWriter{origWriter: w, statusCodeSetter: setter}
+// newHijackWriter return a new hijackWriter
+func newHijackWriter(w *bufio.Writer, setter func(int)) hijackWriter {
+	return hijackWriter{origWriter: w, statusCodeSetter: setter}
 }
 
 // Write implements io.Writer Write interface
-func (h *hijackWriter) Write(b []byte) (int, error) {
+func (h hijackWriter) Write(b []byte) (int, error) {
 	n, err := h.origWriter.Write(b)
 	if err != nil {
 		return 0, errors.New("writing to original writer failed").Wrap(err)
 	}
-	// since hijackWriter is encapsulated in a bufio.Writer, its Write method is called during Flush
-	// flushing the original bufio.Writer.
+
+	// hijackWriter is encapsulated in a bufio.Writer, this method is called by bufio.Writer Flush
+	// flushing the original bufio.Writer to complete the write to its io.Writer
 	err = h.origWriter.Flush()
 	if err != nil {
 		return 0, errors.New("flushing original writer failed").Wrap(err)
 	}
 
-	if h.statusCode == 0 {
-		h.statusCode = h.extractStatusCode(b)
-		h.statusCodeSetter(h.statusCode)
-	}
+	h.statusCodeSetter(h.extractStatusCode(b))
 
 	return n, nil
 }
 
+// extractStatusCode extract status code from a HTTP response
 func (h hijackWriter) extractStatusCode(buf []byte) int {
 	idx := strings.Index(string(buf), "\r")
-	if idx < 0 {
+	if idx <= 0 {
 		return 0
 	}
 
