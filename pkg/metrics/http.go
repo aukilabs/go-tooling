@@ -246,7 +246,7 @@ func (w *responseWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
 	w.hijackWriter = newHijackWriter(rw.Writer, func(statusCode int) {
 		w.statusCode = statusCode
 	})
-	hjWriter := bufio.NewWriter(w.hijackWriter)
+	hjWriter := bufio.NewWriter(&w.hijackWriter)
 
 	return conn, bufio.NewReadWriter(rw.Reader, hjWriter), nil
 }
