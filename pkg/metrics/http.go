@@ -265,7 +265,7 @@ func newHijackWriter(w *bufio.Writer, setter func(int)) hijackWriter {
 }
 
 // Write implements io.Writer Write interface
-func (h hijackWriter) Write(b []byte) (int, error) {
+func (h *hijackWriter) Write(b []byte) (int, error) {
 	n, err := h.origWriter.Write(b)
 	if err != nil {
 		return 0, errors.New("writing to original writer failed").Wrap(err)
