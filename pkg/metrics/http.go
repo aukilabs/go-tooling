@@ -255,6 +255,7 @@ func (w *responseWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
 // this way of hijacking is required because bufio.ReadWriter depends on concret bufio.Writer instead of an interface
 type hijackWriter struct {
 	origWriter       *bufio.Writer
+	statusCode       int
 	statusCodeSetter func(int)
 }
 
@@ -277,7 +278,10 @@ func (h hijackWriter) Write(b []byte) (int, error) {
 		return 0, errors.New("flushing original writer failed").Wrap(err)
 	}
 
-	h.statusCodeSetter(h.extractStatusCode(b))
+	if h.statusCode == 0 {
+		h.statusCode = h.extractStatusCode(b)
+		h.statusCodeSetter(h.statusCode)
+	}
 
 	return n, nil
 }
