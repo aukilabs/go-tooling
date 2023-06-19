@@ -88,12 +88,12 @@ func TestDefaultPathFormater(t *testing.T) {
 	}
 
 	for _, u := range utests {
-		require.Equal(t, u.out, DefaultPathFormater(u.in))
+		require.Equal(t, u.out, DefaultPathFormater(0, u.in))
 	}
 }
 
 func BenchmarkDefaultPathFormater(b *testing.B) {
 	for n := 0; n < b.N; n++ {
-		DefaultPathFormater("/hello/world")
+		DefaultPathFormater(0, "/hello/world")
 	}
 }

@@ -4,19 +4,19 @@ on:
   create:
 jobs:
   codecheck:
-    uses: aukilabs/github-actions/.github/workflows/golang-workflow.yml@feature/argocd
+    uses: aukilabs/github-actions/.github/workflows/golang-workflow.yml@v2
     name: Run code check
     with:
-      golang_version: "1.18"
+      golang_version: "1.20"
       enable_vet: true
     secrets:
       github_app_id: ${{ secrets.GLOBAL_GITHUB_APP_ID }}
       github_app_private_key: ${{ secrets.GLOBAL_GITHUB_APP_PRIVATE_KEY }}
   tests:
-    uses: aukilabs/github-actions/.github/workflows/golang-workflow.yml@feature/argocd
+    uses: aukilabs/github-actions/.github/workflows/golang-workflow.yml@v2
     name: Run test suite
     with:
-      golang_version: "1.18"
+      golang_version: "1.20"
       enable_test: true
     secrets:
       github_app_id: ${{ secrets.GLOBAL_GITHUB_APP_ID }}

@@ -109,13 +109,13 @@ var (
 //
 // This is to prevent paths like the ones which include identifiers to over
 // create metrics dimensions.
-type PathFormater func(path string) string
+type PathFormater func(statusCode int, path string) string
 
 // The default path formater used when none is specified.
 //
 // The formater returns the first element of the path suffixed with a / when
 // there are multiple elements.
-func DefaultPathFormater(path string) string {
+func DefaultPathFormater(_ int, path string) string {
 	if !strings.HasPrefix(path, "/") {
 		path = "/" + path
 	}
@@ -137,44 +137,60 @@ func HTTPHandler(h http.Handler, pathFormater ...PathFormater) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
 
-		path := r.URL.Path
-		for _, f := range pathFormater {
-			path = f(path)
-		}
+		var path string
+		var statusCodeStr string
+		var receivedBytes int
+		var receivedErr error
+		var sentBytes int
+		var sentErr error
 
-		if r.Body != nil {
-			r.Body = makeReadCloser(r.Body, func(bytes int, err error) {
-				inboundHTTPRequestReceivedBytes.With(prometheus.Labels{
-					methodLabel:    r.Method,
-					pathLabel:      path,
-					errorTypeLabel: errors.Type(err),
-				}).Add(float64(bytes))
-			})
-		}
+		// record metrics on exit for statusCode dependent path formatting
+		// which is available after handling the request
+		defer func() {
+			inboundHTTPRequestReceivedBytes.With(prometheus.Labels{
+				methodLabel:    r.Method,
+				pathLabel:      path,
+				errorTypeLabel: errors.Type(receivedErr),
+			}).Add(float64(receivedBytes))
 
-		rw := makeResponseWriter(w, func(statusCode, bytes int, err error) {
 			inboundHTTPRequestSentBytes.With(prometheus.Labels{
 				methodLabel:    r.Method,
 				pathLabel:      path,
-				errorTypeLabel: errors.Type(err),
-			}).Add(float64(bytes))
-		})
+				errorTypeLabel: errors.Type(sentErr),
+			}).Add(float64(sentBytes))
 
-		statusCode := strconv.Itoa(rw.statusCode)
+			inboundHTTPRequests.With(prometheus.Labels{
+				methodLabel: r.Method,
+				pathLabel:   path,
+				statusLabel: statusCodeStr,
+			}).Inc()
+
+			inboundHTTPRequestLatencies.With(prometheus.Labels{
+				methodLabel: r.Method,
+				pathLabel:   path,
+				statusLabel: statusCodeStr,
+			}).Observe(time.Since(start).Seconds())
+		}()
+
+		if r.Body != nil {
+			r.Body = makeReadCloser(r.Body, func(bytes int, err error) {
+				receivedBytes = bytes
+				receivedErr = err
+			})
+		}
+
+		rw := makeResponseWriter(w, func(_, bytes int, err error) {
+			sentBytes = bytes
+			sentErr = err
+		})
 
 		h.ServeHTTP(&rw, r)
 
-		inboundHTTPRequests.With(prometheus.Labels{
-			methodLabel: r.Method,
-			pathLabel:   path,
-			statusLabel: statusCode,
-		}).Inc()
-
-		inboundHTTPRequestLatencies.With(prometheus.Labels{
-			methodLabel: r.Method,
-			pathLabel:   r.URL.Path,
-			statusLabel: statusCode,
-		}).Observe(time.Since(start).Seconds())
+		statusCodeStr = strconv.Itoa(rw.statusCode)
+		path = r.URL.Path
+		for _, f := range pathFormater {
+			path = f(rw.statusCode, path)
+		}
 	})
 }
 
@@ -193,8 +209,9 @@ func HTTPTransport(t http.RoundTripper, pathFormater ...PathFormater) http.Round
 type responseWriter struct {
 	http.ResponseWriter
 
-	observe    func(statusCode int, bytes int, err error)
-	statusCode int
+	observe      func(statusCode int, bytes int, err error)
+	statusCode   int
+	hijackWriter hijackWriter
 }
 
 func makeResponseWriter(w http.ResponseWriter, observe func(statusCode, bytes int, err error)) responseWriter {
@@ -221,7 +238,73 @@ func (w *responseWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
 	if !ok {
 		return nil, nil, errors.New("hijack is not supported").WithType("http-hijack-not-supported")
 	}
-	return hj.Hijack()
+	conn, rw, err := hj.Hijack()
+	if err != nil {
+		return nil, nil, errors.New("hijack failed").Wrap(err)
+	}
+
+	w.hijackWriter = newHijackWriter(rw.Writer, func(statusCode int) {
+		w.statusCode = statusCode
+	})
+	hjWriter := bufio.NewWriter(&w.hijackWriter)
+
+	return conn, bufio.NewReadWriter(rw.Reader, hjWriter), nil
+}
+
+// hijackWriter implements the io.Writer interface to hijack a bufio.Writer's io.Writer
+// this way of hijacking is required because bufio.ReadWriter depends on concret bufio.Writer instead of an interface
+type hijackWriter struct {
+	origWriter       *bufio.Writer
+	statusCode       int
+	statusCodeSetter func(int)
+}
+
+// newHijackWriter return a new hijackWriter
+func newHijackWriter(w *bufio.Writer, setter func(int)) hijackWriter {
+	return hijackWriter{origWriter: w, statusCodeSetter: setter}
+}
+
+// Write implements io.Writer Write interface
+func (h *hijackWriter) Write(b []byte) (int, error) {
+	n, err := h.origWriter.Write(b)
+	if err != nil {
+		return 0, errors.New("writing to original writer failed").Wrap(err)
+	}
+
+	// hijackWriter is encapsulated in a bufio.Writer, this method is called by bufio.Writer Flush
+	// flushing the original bufio.Writer to complete the write to its io.Writer
+	err = h.origWriter.Flush()
+	if err != nil {
+		return 0, errors.New("flushing original writer failed").Wrap(err)
+	}
+
+	if h.statusCode == 0 {
+		h.statusCode = h.extractStatusCode(b)
+		h.statusCodeSetter(h.statusCode)
+	}
+
+	return n, nil
+}
+
+// extractStatusCode extract status code from a HTTP response
+func (h hijackWriter) extractStatusCode(buf []byte) int {
+	idx := strings.Index(string(buf), "\r")
+	if idx <= 0 {
+		return 0
+	}
+
+	line := buf[:idx]
+	cols := strings.Split(string(line), " ")
+	if len(cols) < 2 {
+		return 0
+	}
+
+	code, err := strconv.Atoi(cols[1])
+	if err != nil {
+		return 0
+	}
+
+	return code
 }
 
 type readCloser struct {
@@ -251,54 +334,74 @@ type transport struct {
 func (t transport) RoundTrip(req *http.Request) (*http.Response, error) {
 	start := time.Now()
 
-	path := req.URL.Path
-	for _, f := range t.pathFormaters {
-		path = f(path)
-	}
+	var path string
+	var statusCodeStr string
+	var statusCode int
+	var receivedBytes int
+	var receivedErr error
+	var sentBytes int
+	var sentErr error
+	var handlingErr error
+
+	// record metrics on exit for statusCode dependent path formatting
+	// which is available after handling the request
+	defer func() {
+		outboundHTTPRequestSentBytes.With(prometheus.Labels{
+			methodLabel:    req.Method,
+			endpointLabel:  req.URL.Host,
+			pathLabel:      path,
+			errorTypeLabel: errors.Type(sentErr),
+		}).Add(float64(sentBytes))
+
+		outboundHTTPRequestReceivedBytes.With(prometheus.Labels{
+			methodLabel:    req.Method,
+			endpointLabel:  req.URL.Host,
+			pathLabel:      path,
+			errorTypeLabel: errors.Type(receivedErr),
+		}).Add(float64(receivedBytes))
+
+		outboundHTTPRequests.With(prometheus.Labels{
+			endpointLabel:  req.URL.Host,
+			methodLabel:    req.Method,
+			pathLabel:      path,
+			statusLabel:    statusCodeStr,
+			errorTypeLabel: errors.Type(handlingErr),
+		}).Inc()
+
+		outboundHTTPRequestLatencies.With(prometheus.Labels{
+			endpointLabel:  req.URL.Host,
+			methodLabel:    req.Method,
+			pathLabel:      path,
+			statusLabel:    statusCodeStr,
+			errorTypeLabel: errors.Type(handlingErr),
+		}).Observe(time.Since(start).Seconds())
+
+	}()
 
 	if req.Body != nil {
 		req.Body = makeReadCloser(req.Body, func(bytes int, err error) {
-			outboundHTTPRequestSentBytes.With(prometheus.Labels{
-				methodLabel:    req.Method,
-				endpointLabel:  req.URL.Host,
-				pathLabel:      path,
-				errorTypeLabel: errors.Type(err),
-			}).Add(float64(bytes))
+			sentBytes = bytes
+			sentErr = err
 		})
 	}
 
 	res, err := t.RoundTripper.RoundTrip(req)
 	if err == nil && res.Body != nil {
 		res.Body = makeReadCloser(res.Body, func(bytes int, err error) {
-			outboundHTTPRequestReceivedBytes.With(prometheus.Labels{
-				methodLabel:    req.Method,
-				endpointLabel:  req.URL.Host,
-				pathLabel:      path,
-				errorTypeLabel: errors.Type(err),
-			}).Add(float64(bytes))
+			receivedBytes = bytes
+			receivedErr = err
 		})
 	}
 
-	var statusCode string
 	if res != nil {
-		statusCode = strconv.Itoa(res.StatusCode)
+		statusCode = res.StatusCode
+		statusCodeStr = strconv.Itoa(res.StatusCode)
 	}
 
-	outboundHTTPRequests.With(prometheus.Labels{
-		endpointLabel:  req.URL.Host,
-		methodLabel:    req.Method,
-		pathLabel:      path,
-		statusLabel:    statusCode,
-		errorTypeLabel: errors.Type(err),
-	}).Inc()
-
-	outboundHTTPRequestLatencies.With(prometheus.Labels{
-		endpointLabel:  req.URL.Host,
-		methodLabel:    req.Method,
-		pathLabel:      path,
-		statusLabel:    statusCode,
-		errorTypeLabel: errors.Type(err),
-	}).Observe(time.Since(start).Seconds())
+	path = req.URL.Path
+	for _, f := range t.pathFormaters {
+		path = f(statusCode, path)
+	}
 
 	return res, err
 }
