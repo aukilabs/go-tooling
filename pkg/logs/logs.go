@@ -27,6 +27,8 @@ const (
 	InfoLevel
 	WarningLevel
 	ErrorLevel
+
+	ClientIDTag = "client_id"
 )
 
 // A log level.
@@ -113,6 +115,11 @@ func WithTag(k string, v any) Entry {
 	return New().WithTag(k, v)
 }
 
+// Creates a log entry with client id
+func WithClientID(v string) Entry {
+	return New().WithTag(ClientIDTag, v)
+}
+
 // Logs an error.
 func Error(err error) {
 	New().Error(err)
@@ -128,6 +135,9 @@ type Entry interface {
 	// Sets the tag key with the given value. The value is converted to a
 	// string.
 	WithTag(k string, v any) Entry
+
+	// Set Client ID tag
+	WithClientID(v string) Entry
 
 	// Returns the log tags.
 	Tags() map[string]any
@@ -203,6 +213,10 @@ func (e entry) WithTag(k string, v any) Entry {
 
 	e.tags[k] = normalizeTag(v)
 	return e
+}
+
+func (e entry) WithClientID(v string) Entry {
+	return e.WithTag(ClientIDTag, v)
 }
 
 func (e entry) Tags() map[string]any {
