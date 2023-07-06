@@ -28,7 +28,10 @@ const (
 	WarningLevel
 	ErrorLevel
 
-	ClientIDTag = "client_id"
+	AppKeyTag        = "app_key"
+	SessionIDTag     = "session_id"
+	ParticipantIDTag = "participant_id"
+	ClientIDTag      = "client_id"
 )
 
 // A log level.

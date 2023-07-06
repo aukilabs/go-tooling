@@ -7,13 +7,6 @@ import (
 	"github.com/aukilabs/go-tooling/pkg/logs"
 )
 
-// Tags that are mapped to a log event.
-const (
-	AppKeyTag        = "app-key"
-	SessionIDTag     = "session-id"
-	ParticipantIDTag = "participant-id"
-)
-
 // A logger that logs on the console and generate log events.
 type Logger struct {
 	// The pusher to send events.
@@ -38,9 +31,10 @@ func (l Logger) Log(e logs.Entry) {
 	}
 	print("%s", e)
 
-	appKey, _ := e.Tags()[AppKeyTag].(string)
-	participantID, _ := e.Tags()[ParticipantIDTag].(string)
-	sessionID, _ := e.Tags()[SessionIDTag].(string)
+	appKey, _ := e.Tags()[logs.AppKeyTag].(string)
+	participantID, _ := e.Tags()[logs.ParticipantIDTag].(string)
+	sessionID, _ := e.Tags()[logs.SessionIDTag].(string)
+	clientID, _ := e.Tags()[logs.ClientIDTag].(string)
 
 	l.Pusher.NewEvent(logEvent{
 		AppKey:         appKey,
@@ -56,6 +50,7 @@ func (l Logger) Log(e logs.Entry) {
 		SessionID:     sessionID,
 		Event:         "log",
 		Timestamp:     e.Time().UnixMilli(),
+		ClientID:      clientID,
 	})
 }
 
@@ -76,6 +71,7 @@ type logEvent struct {
 	ParticipantID  string `json:"participant_id,omitempty"`
 	SessionID      string `json:"session_id,omitempty"`
 	Timestamp      int64  `json:"timestamp,omitempty"`
+	ClientID       string `json:"client_id,omitempty"`
 }
 
 type logEventData struct {
