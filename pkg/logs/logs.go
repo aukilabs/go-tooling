@@ -3,6 +3,7 @@ package logs
 import (
 	"encoding/json"
 	"fmt"
+	"os"
 	"strconv"
 	"sync"
 	"time"
@@ -143,10 +144,16 @@ func Debug(arg ...any) {
 	New().Debug(arg)
 }
 
-// Logs with panic
+// Logs with error severity and panic
 func Panic(err error) {
 	New().Error(err)
 	panic(err)
+}
+
+// Logs with error severity and exit with status code 1
+func Fatal(err error) {
+	New().Error(err)
+	os.Exit(1)
 }
 
 type Entry interface {
