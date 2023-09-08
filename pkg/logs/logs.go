@@ -198,14 +198,14 @@ type Entry interface {
 	// Logs the velues with the given format on with info level.
 	Infof(format string, v ...any)
 
-	// Logs the given values with error level.
-	Error(v ...any)
-
 	// Logs the given values with warning level.
 	Warn(v ...any)
 
 	// Logs the velues with the given format on with warning level.
 	Warnf(format string, v ...any)
+
+	// Logs the given values with error level.
+	Error(error)
 
 	// Logs error on error level and exit with status 1.
 	Fatal(err error)
