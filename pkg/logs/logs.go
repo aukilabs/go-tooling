@@ -161,14 +161,12 @@ func Debugf(format string, arg ...any) {
 
 // Logs with error severity and panic
 func Panic(err error) {
-	New().Error(err)
-	panic(err)
+	New().Panic(err)
 }
 
 // Logs with error severity and exit with status code 1
 func Fatal(err error) {
-	New().Error(err)
-	os.Exit(1)
+	New().Fatal(err)
 }
 
 type Entry interface {
@@ -200,14 +198,20 @@ type Entry interface {
 	// Logs the velues with the given format on with info level.
 	Infof(format string, v ...any)
 
+	// Logs the given values with error level.
+	Error(v ...any)
+
 	// Logs the given values with warning level.
 	Warn(v ...any)
 
 	// Logs the velues with the given format on with warning level.
 	Warnf(format string, v ...any)
 
-	// Logs error on error level.
-	Error(err error)
+	// Logs error on error level and exit with status 1.
+	Fatal(err error)
+
+	// Logs error on error level and panic
+	Panic(err error)
 
 	// Returns the error used to create the entry.
 	GetError() error
@@ -317,6 +321,24 @@ func (e entry) Error(err error) {
 	e.message = errors.Message(err)
 	e.err = err
 	log(e)
+}
+
+func (e entry) Fatal(err error) {
+	e.time = time.Now()
+	e.level = ErrorLevel
+	e.message = errors.Message(err)
+	e.err = err
+	log(e)
+	os.Exit(1)
+}
+
+func (e entry) Panic(err error) {
+	e.time = time.Now()
+	e.level = ErrorLevel
+	e.message = errors.Message(err)
+	e.err = err
+	log(e)
+	panic(e)
 }
 
 func (e entry) GetError() error {
