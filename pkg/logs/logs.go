@@ -128,6 +128,27 @@ func Error(err error) {
 	New().Error(err)
 }
 
+// Logs with warn severity
+func Warn(arg ...any) {
+	New().Warn(arg)
+}
+
+// Logs with info severity
+func Info(arg ...any) {
+	New().Info(arg)
+}
+
+// Logs with debug severity
+func Debug(arg ...any) {
+	New().Debug(arg)
+}
+
+// Logs with panic
+func Panic(err error) {
+	New().Error(err)
+	panic(err)
+}
+
 type Entry interface {
 	// Return the time when the entry was created.
 	Time() time.Time
