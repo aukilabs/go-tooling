@@ -134,14 +134,29 @@ func Warn(arg ...any) {
 	New().Warn(arg)
 }
 
+// Logs with warn severity
+func Warnf(format string, arg ...any) {
+	New().Warnf(format, arg)
+}
+
 // Logs with info severity
 func Info(arg ...any) {
 	New().Info(arg)
 }
 
+// Logs with info severity
+func Infof(format string, arg ...any) {
+	New().Infof(format, arg)
+}
+
 // Logs with debug severity
 func Debug(arg ...any) {
 	New().Debug(arg)
+}
+
+// Logs with debug severity
+func Debugf(format string, arg ...any) {
+	New().Debugf(format, arg)
 }
 
 // Logs with error severity and panic
