@@ -3,6 +3,7 @@ package logs
 import (
 	"encoding/json"
 	"fmt"
+	"os"
 	"strconv"
 	"sync"
 	"time"
@@ -27,6 +28,11 @@ const (
 	InfoLevel
 	WarningLevel
 	ErrorLevel
+
+	AppKeyTag        = "app_key"
+	SessionIDTag     = "session_id"
+	ParticipantIDTag = "participant_id"
+	ClientIDTag      = "client_id"
 )
 
 // A log level.
@@ -113,9 +119,54 @@ func WithTag(k string, v any) Entry {
 	return New().WithTag(k, v)
 }
 
+// Creates a log entry with client id
+func WithClientID(v string) Entry {
+	return New().WithTag(ClientIDTag, v)
+}
+
 // Logs an error.
 func Error(err error) {
 	New().Error(err)
+}
+
+// Logs with warn severity
+func Warn(arg ...any) {
+	New().Warn(arg)
+}
+
+// Logs with warn severity
+func Warnf(format string, arg ...any) {
+	New().Warnf(format, arg)
+}
+
+// Logs with info severity
+func Info(arg ...any) {
+	New().Info(arg)
+}
+
+// Logs with info severity
+func Infof(format string, arg ...any) {
+	New().Infof(format, arg)
+}
+
+// Logs with debug severity
+func Debug(arg ...any) {
+	New().Debug(arg)
+}
+
+// Logs with debug severity
+func Debugf(format string, arg ...any) {
+	New().Debugf(format, arg)
+}
+
+// Logs with error severity and panic
+func Panic(err error) {
+	New().Panic(err)
+}
+
+// Logs with error severity and exit with status code 1
+func Fatal(err error) {
+	New().Fatal(err)
 }
 
 type Entry interface {
@@ -128,6 +179,9 @@ type Entry interface {
 	// Sets the tag key with the given value. The value is converted to a
 	// string.
 	WithTag(k string, v any) Entry
+
+	// Set Client ID tag
+	WithClientID(v string) Entry
 
 	// Returns the log tags.
 	Tags() map[string]any
@@ -150,8 +204,14 @@ type Entry interface {
 	// Logs the velues with the given format on with warning level.
 	Warnf(format string, v ...any)
 
-	// Logs error on error level.
-	Error(err error)
+	// Logs the given values with error level.
+	Error(error)
+
+	// Logs error on error level and exit with status 1.
+	Fatal(err error)
+
+	// Logs error on error level and panic
+	Panic(err error)
 
 	// Returns the error used to create the entry.
 	GetError() error
@@ -203,6 +263,10 @@ func (e entry) WithTag(k string, v any) Entry {
 
 	e.tags[k] = normalizeTag(v)
 	return e
+}
+
+func (e entry) WithClientID(v string) Entry {
+	return e.WithTag(ClientIDTag, v)
 }
 
 func (e entry) Tags() map[string]any {
@@ -257,6 +321,24 @@ func (e entry) Error(err error) {
 	e.message = errors.Message(err)
 	e.err = err
 	log(e)
+}
+
+func (e entry) Fatal(err error) {
+	e.time = time.Now()
+	e.level = ErrorLevel
+	e.message = errors.Message(err)
+	e.err = err
+	log(e)
+	os.Exit(1)
+}
+
+func (e entry) Panic(err error) {
+	e.time = time.Now()
+	e.level = ErrorLevel
+	e.message = errors.Message(err)
+	e.err = err
+	log(e)
+	panic(e)
 }
 
 func (e entry) GetError() error {
