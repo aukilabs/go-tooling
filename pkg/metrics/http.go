@@ -206,6 +206,16 @@ func HTTPTransport(t http.RoundTripper, pathFormater ...PathFormater) http.Round
 	}
 }
 
+// Middleware return middleware for go-chi like http router
+func Middleware(pathFormater ...PathFormater) func(h http.Handler) http.Handler {
+	return func(h http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			h = HTTPHandler(h, pathFormater...)
+			h.ServeHTTP(w, r)
+		})
+	}
+}
+
 type responseWriter struct {
 	http.ResponseWriter
 
