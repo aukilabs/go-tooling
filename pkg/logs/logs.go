@@ -1,6 +1,7 @@
 package logs
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -9,6 +10,7 @@ import (
 	"time"
 
 	"github.com/aukilabs/go-tooling/pkg/errors"
+	"go.opentelemetry.io/otel/trace"
 )
 
 var (
@@ -124,6 +126,11 @@ func WithClientID(v string) Entry {
 	return New().WithTag(ClientIDTag, v)
 }
 
+// Creates a log entry with opentelemetry context tags
+func WithOtelCtx(ctx context.Context) Entry {
+	return New().WithOtelCtx(ctx)
+}
+
 // Logs an error.
 func Error(err error) {
 	New().Error(err)
@@ -182,6 +189,9 @@ type Entry interface {
 
 	// Set Client ID tag
 	WithClientID(v string) Entry
+
+	// Set opentelemetry context tags
+	WithOtelCtx(ctx context.Context) Entry
 
 	// Returns the log tags.
 	Tags() map[string]any
@@ -267,6 +277,16 @@ func (e entry) WithTag(k string, v any) Entry {
 
 func (e entry) WithClientID(v string) Entry {
 	return e.WithTag(ClientIDTag, v)
+}
+
+func (e entry) WithOtelCtx(ctx context.Context) Entry {
+	traceID := trace.SpanFromContext(ctx).SpanContext().TraceID()
+	spanID := trace.SpanFromContext(ctx).SpanContext().SpanID()
+
+	if traceID.IsValid() && spanID.IsValid() {
+		return e.WithTag("trace_id", traceID.String()).WithTag("span_id", spanID.String())
+	}
+	return e
 }
 
 func (e entry) Tags() map[string]any {
