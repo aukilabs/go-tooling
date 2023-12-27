@@ -284,7 +284,7 @@ func (e entry) WithOtelCtx(ctx context.Context) Entry {
 	spanID := trace.SpanFromContext(ctx).SpanContext().SpanID()
 
 	if traceID.IsValid() && spanID.IsValid() {
-		return e.WithTag("trace_id", traceID.String()).WithTag("span_id", spanID.String())
+		return e.WithTag("trace-id", traceID.String()).WithTag("span-id", spanID.String())
 	}
 	return e
 }
