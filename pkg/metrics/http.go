@@ -129,37 +129,37 @@ func DefaultPathFormater(_ int, path string) string {
 }
 
 // Returns an HTTP handler that generates metrics for the given handler.
-func HTTPHandler(h http.Handler, pathFormater ...PathFormater) http.Handler {
-	if len(pathFormater) == 0 {
-		pathFormater = append(pathFormater, DefaultPathFormater)
+func HTTPHandler(h http.Handler, pathFormaters ...PathFormater) http.Handler {
+	if len(pathFormaters) == 0 {
+		pathFormaters = append(pathFormaters, DefaultPathFormater)
 	}
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		handleWithMetrics(h, pathFormater, w, r)
+		handleWithMetrics(h, pathFormaters, w, r)
 	})
 }
 
 // Return an HTTP transport that generates metrics for the given transport.
-func HTTPTransport(t http.RoundTripper, pathFormater ...PathFormater) http.RoundTripper {
-	if len(pathFormater) == 0 {
-		pathFormater = append(pathFormater, DefaultPathFormater)
+func HTTPTransport(t http.RoundTripper, pathFormaters ...PathFormater) http.RoundTripper {
+	if len(pathFormaters) == 0 {
+		pathFormaters = append(pathFormaters, DefaultPathFormater)
 	}
 
 	return transport{
 		RoundTripper:  t,
-		pathFormaters: pathFormater,
+		pathFormaters: pathFormaters,
 	}
 }
 
 // Middleware return middleware for go-chi like http router
-func Middleware(pathFormater ...PathFormater) func(h http.Handler) http.Handler {
-	if len(pathFormater) == 0 {
-		pathFormater = append(pathFormater, DefaultPathFormater)
+func Middleware(pathFormaters ...PathFormater) func(h http.Handler) http.Handler {
+	if len(pathFormaters) == 0 {
+		pathFormaters = append(pathFormaters, DefaultPathFormater)
 	}
 
 	return func(h http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			handleWithMetrics(h, pathFormater, w, r)
+			handleWithMetrics(h, pathFormaters, w, r)
 		})
 	}
 }
