@@ -135,62 +135,7 @@ func HTTPHandler(h http.Handler, pathFormater ...PathFormater) http.Handler {
 	}
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		start := time.Now()
-
-		var path string
-		var statusCodeStr string
-		var receivedBytes int
-		var receivedErr error
-		var sentBytes int
-		var sentErr error
-
-		// record metrics on exit for statusCode dependent path formatting
-		// which is available after handling the request
-		defer func() {
-			inboundHTTPRequestReceivedBytes.With(prometheus.Labels{
-				methodLabel:    r.Method,
-				pathLabel:      path,
-				errorTypeLabel: errors.Type(receivedErr),
-			}).Add(float64(receivedBytes))
-
-			inboundHTTPRequestSentBytes.With(prometheus.Labels{
-				methodLabel:    r.Method,
-				pathLabel:      path,
-				errorTypeLabel: errors.Type(sentErr),
-			}).Add(float64(sentBytes))
-
-			inboundHTTPRequests.With(prometheus.Labels{
-				methodLabel: r.Method,
-				pathLabel:   path,
-				statusLabel: statusCodeStr,
-			}).Inc()
-
-			inboundHTTPRequestLatencies.With(prometheus.Labels{
-				methodLabel: r.Method,
-				pathLabel:   path,
-				statusLabel: statusCodeStr,
-			}).Observe(time.Since(start).Seconds())
-		}()
-
-		if r.Body != nil {
-			r.Body = makeReadCloser(r.Body, func(bytes int, err error) {
-				receivedBytes = bytes
-				receivedErr = err
-			})
-		}
-
-		rw := makeResponseWriter(w, func(_, bytes int, err error) {
-			sentBytes = bytes
-			sentErr = err
-		})
-
-		h.ServeHTTP(&rw, r)
-
-		statusCodeStr = strconv.Itoa(rw.statusCode)
-		path = r.URL.Path
-		for _, f := range pathFormater {
-			path = f(rw.statusCode, path)
-		}
+		handleWithMetrics(h, pathFormater, w, r)
 	})
 }
 
@@ -208,10 +153,13 @@ func HTTPTransport(t http.RoundTripper, pathFormater ...PathFormater) http.Round
 
 // Middleware return middleware for go-chi like http router
 func Middleware(pathFormater ...PathFormater) func(h http.Handler) http.Handler {
+	if len(pathFormater) == 0 {
+		pathFormater = append(pathFormater, DefaultPathFormater)
+	}
+
 	return func(h http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			h = HTTPHandler(h, pathFormater...)
-			h.ServeHTTP(w, r)
+			handleWithMetrics(h, pathFormater, w, r)
 		})
 	}
 }
@@ -414,4 +362,63 @@ func (t transport) RoundTrip(req *http.Request) (*http.Response, error) {
 	}
 
 	return res, err
+}
+
+func handleWithMetrics(h http.Handler, pathFormaters []PathFormater, w http.ResponseWriter, r *http.Request) {
+	start := time.Now()
+
+	var path string
+	var statusCodeStr string
+	var receivedBytes int
+	var receivedErr error
+	var sentBytes int
+	var sentErr error
+
+	// record metrics on exit for statusCode dependent path formatting
+	// which is available after handling the request
+	defer func() {
+		inboundHTTPRequestReceivedBytes.With(prometheus.Labels{
+			methodLabel:    r.Method,
+			pathLabel:      path,
+			errorTypeLabel: errors.Type(receivedErr),
+		}).Add(float64(receivedBytes))
+
+		inboundHTTPRequestSentBytes.With(prometheus.Labels{
+			methodLabel:    r.Method,
+			pathLabel:      path,
+			errorTypeLabel: errors.Type(sentErr),
+		}).Add(float64(sentBytes))
+
+		inboundHTTPRequests.With(prometheus.Labels{
+			methodLabel: r.Method,
+			pathLabel:   path,
+			statusLabel: statusCodeStr,
+		}).Inc()
+
+		inboundHTTPRequestLatencies.With(prometheus.Labels{
+			methodLabel: r.Method,
+			pathLabel:   path,
+			statusLabel: statusCodeStr,
+		}).Observe(time.Since(start).Seconds())
+	}()
+
+	if r.Body != nil {
+		r.Body = makeReadCloser(r.Body, func(bytes int, err error) {
+			receivedBytes = bytes
+			receivedErr = err
+		})
+	}
+
+	rw := makeResponseWriter(w, func(_, bytes int, err error) {
+		sentBytes = bytes
+		sentErr = err
+	})
+
+	h.ServeHTTP(&rw, r)
+
+	statusCodeStr = strconv.Itoa(rw.statusCode)
+	path = r.URL.Path
+	for _, f := range pathFormaters {
+		path = f(rw.statusCode, path)
+	}
 }
