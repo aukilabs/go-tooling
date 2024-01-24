@@ -7,7 +7,7 @@ jobs:
     uses: aukilabs/github-actions/.github/workflows/golang-workflow.yml@v2
     name: Run code check
     with:
-      golang_version: "1.20"
+      golang_version: "1.21"
       enable_vet: true
     secrets:
       github_app_id: ${{ secrets.GLOBAL_GITHUB_APP_ID }}
@@ -16,7 +16,7 @@ jobs:
     uses: aukilabs/github-actions/.github/workflows/golang-workflow.yml@v2
     name: Run test suite
     with:
-      golang_version: "1.20"
+      golang_version: "1.21"
       enable_test: true
     secrets:
       github_app_id: ${{ secrets.GLOBAL_GITHUB_APP_ID }}
