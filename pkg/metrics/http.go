@@ -129,37 +129,37 @@ func DefaultPathFormater(_ int, path string) string {
 }
 
 // Returns an HTTP handler that generates metrics for the given handler.
-func HTTPHandler(h http.Handler, pathFormaters ...PathFormater) http.Handler {
-	if len(pathFormaters) == 0 {
-		pathFormaters = append(pathFormaters, DefaultPathFormater)
+func HTTPHandler(h http.Handler, pathFormatters ...PathFormater) http.Handler {
+	if len(pathFormatters) == 0 {
+		pathFormatters = append(pathFormatters, DefaultPathFormater)
 	}
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		handleWithMetrics(h, pathFormaters, w, r)
+		handleWithMetrics(h, pathFormatters, w, r)
 	})
 }
 
 // Return an HTTP transport that generates metrics for the given transport.
-func HTTPTransport(t http.RoundTripper, pathFormaters ...PathFormater) http.RoundTripper {
-	if len(pathFormaters) == 0 {
-		pathFormaters = append(pathFormaters, DefaultPathFormater)
+func HTTPTransport(t http.RoundTripper, pathFormatters ...PathFormater) http.RoundTripper {
+	if len(pathFormatters) == 0 {
+		pathFormatters = append(pathFormatters, DefaultPathFormater)
 	}
 
 	return transport{
-		RoundTripper:  t,
-		pathFormaters: pathFormaters,
+		RoundTripper:   t,
+		pathFormatters: pathFormatters,
 	}
 }
 
 // Middleware return middleware for go-chi like http router
-func Middleware(pathFormaters ...PathFormater) func(h http.Handler) http.Handler {
-	if len(pathFormaters) == 0 {
-		pathFormaters = append(pathFormaters, DefaultPathFormater)
+func Middleware(pathFormatters ...PathFormater) func(h http.Handler) http.Handler {
+	if len(pathFormatters) == 0 {
+		pathFormatters = append(pathFormatters, DefaultPathFormater)
 	}
 
 	return func(h http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			handleWithMetrics(h, pathFormaters, w, r)
+			handleWithMetrics(h, pathFormatters, w, r)
 		})
 	}
 }
@@ -286,7 +286,7 @@ func (r readCloser) Read(p []byte) (int, error) {
 
 type transport struct {
 	http.RoundTripper
-	pathFormaters []PathFormater
+	pathFormatters []PathFormater
 }
 
 func (t transport) RoundTrip(req *http.Request) (*http.Response, error) {
@@ -357,14 +357,14 @@ func (t transport) RoundTrip(req *http.Request) (*http.Response, error) {
 	}
 
 	path = req.URL.Path
-	for _, f := range t.pathFormaters {
+	for _, f := range t.pathFormatters {
 		path = f(statusCode, path)
 	}
 
 	return res, err
 }
 
-func handleWithMetrics(h http.Handler, pathFormaters []PathFormater, w http.ResponseWriter, r *http.Request) {
+func handleWithMetrics(h http.Handler, pathFormatters []PathFormater, w http.ResponseWriter, r *http.Request) {
 	start := time.Now()
 
 	var path string
@@ -418,7 +418,7 @@ func handleWithMetrics(h http.Handler, pathFormaters []PathFormater, w http.Resp
 
 	statusCodeStr = strconv.Itoa(rw.statusCode)
 	path = r.URL.Path
-	for _, f := range pathFormaters {
+	for _, f := range pathFormatters {
 		path = f(rw.statusCode, path)
 	}
 }
