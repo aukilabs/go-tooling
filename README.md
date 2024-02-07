@@ -4,7 +4,7 @@ A collection of packages to help build Go services.
 
 ## Requirement
 
-- [Go 1.20](https://go.dev/blog/go1.20) or higher
+- [Go 1.21](https://go.dev/blog/go1.21) or higher
 
 ## Testing
 
