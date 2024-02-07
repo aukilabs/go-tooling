@@ -1,32 +1,45 @@
 name: Tests
 
-on: [push]
+on:
+  workflow_call:
+    inputs:
+      golang_version:
+        default: '1.21'
+        required: false
+        type: string
+      enable_coverage:
+        default: false
+        type: boolean
+      minimum_coverage:
+        default: 0
+        type: number
 
 jobs:
-  codecheck:
-    name: Run code check
+  test:
+    name: Test
     runs-on: ubuntu-latest
-    steps:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: "1.21"
+          go-version: ${{ inputs.golang_version }}
       - name: Check out code
         uses: actions/checkout@v4
       - name: Vet
         run: go vet ./...
-
-  tests:
-    name: Run test suite
-    runs-on: ubuntu-latest
-    steps:
-      - name: Set up Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: "1.21"
-      - name: Check out code
-        uses: actions/checkout@v4
       - name: Install dependencies
-        run: go mod download
-      - name: Tests
-        run: go test ./...
+        run: |
+          go mod download
+      - name: Run unit tests
+        if: ${{ !inputs.enable_coverage }}
+        run: APP_DIRECTORY="$(pwd)" go test -p 1 ./...
+      - name: Run unit tests with coverage
+        if: ${{ inputs.enable_coverage }}
+        run: |
+          APP_DIRECTORY="$(pwd)" go test -p 1 -coverprofile cover.out -covermode set ./...
+          coverage="$(go tool cover -func=cover.out | grep total: | sed 's/[^0-9.\]//g')"
+          if (( $(echo "${coverage} ${{ inputs.minimum_coverage }}" | awk '{print ($1 >= $2)}') )) ; then
+            echo "Test coverage passed: ${coverage}%"
+          else
+            echo "Test coverage failed: ${coverage}% is below the threshold ${{ inputs.minimum_coverage }}%."
+            exit 1
+          fi
