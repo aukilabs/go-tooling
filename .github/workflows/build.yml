@@ -1,0 +1,22 @@
+name: Build
+
+on:
+  workflow_call:
+    inputs:
+      golang_version:
+        default: '1.21'
+        required: false
+        type: string
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ inputs.golang_version }}
+      - name: Check out code
+        uses: actions/checkout@v4
+      - name: Build
+        run: make build

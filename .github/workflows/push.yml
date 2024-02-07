@@ -1,0 +1,14 @@
+name: Tests
+
+on: [push]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  tests:
+    uses: ./.github/workflows/tests.yml
+    name: Tests
+    with:
+      enable_coverage: true
