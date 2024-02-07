@@ -32,11 +32,11 @@ jobs:
           go mod download
       - name: Run unit tests
         if: ${{ !inputs.enable_coverage }}
-        run: APP_DIRECTORY="$(pwd)" go test -p 1 ./...
+        run: go test -p 1 ./...
       - name: Run unit tests with coverage
         if: ${{ inputs.enable_coverage }}
         run: |
-          APP_DIRECTORY="$(pwd)" go test -p 1 -coverprofile cover.out -covermode set ./...
+          go test -p 1 -coverprofile cover.out -covermode set ./...
           coverage="$(go tool cover -func=cover.out | grep total: | sed 's/[^0-9.\]//g')"
           if (( $(echo "${coverage} ${{ inputs.minimum_coverage }}" | awk '{print ($1 >= $2)}') )) ; then
             echo "Test coverage passed: ${coverage}%"
