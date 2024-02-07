@@ -1,0 +1,109 @@
+name: Release
+
+on:
+  workflow_call:
+    secrets:
+      docker_username:
+        required: true
+      docker_password:
+        required: true
+    inputs:
+      app_name:
+        required: true
+        type: string
+      golang_version:
+        default: '1.21'
+        required: false
+        type: string
+
+jobs:
+  release-docker:
+    runs-on: ubuntu-latest
+    env:
+      APP: ${{ inputs.app_name }}
+    steps:
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.docker_username }}
+          password: ${{ secrets.docker_password }}
+  release-binary:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - { goos: "linux", goarch: "386" }
+          - { goos: "linux", goarch: "amd64" }
+          - { goos: "linux", goarch: "arm" }
+          - { goos: "linux", goarch: "arm64" }
+          - { goos: "freebsd", goarch: "386" }
+          - { goos: "freebsd", goarch: "amd64" }
+          - { goos: "windows", goarch: "386" }
+          - { goos: "windows", goarch: "amd64" }
+          - { goos: "solaris", goarch: "amd64" }
+      fail-fast: true
+    env:
+      APP: ${{ inputs.app_name }}
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ inputs.golang_version }}
+      - name: Install dependencies
+        run: |
+          go mod download
+      - name: Build
+        run: |
+          make GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} VERSION="${{ github.ref_name }}" "bin/${APP}"
+          mv "bin/${APP}" "${APP}-${{ github.ref_name }}-${{ matrix.goos }}-${{ matrix.goarch }}"
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ inputs.app_name }}-${{ github.ref_name }}-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: ${{ inputs.app_name }}-${{ github.ref_name }}-${{ matrix.goos }}-${{ matrix.goarch }}
+  release-binary-darwin:
+    runs-on: macos-latest
+    strategy:
+      matrix:
+        goos: [darwin]
+        goarch: ["amd64", "arm64"]
+      fail-fast: true
+    env:
+      APP: ${{ inputs.app_name }}
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ inputs.golang_version }}
+      - name: Install dependencies
+        run: |
+          go mod download
+      - name: Build
+        run: |
+          make GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} VERSION="${{ github.ref_name }}" "bin/${APP}"
+          mv "bin/${APP}" "${APP}-${{ github.ref_name }}-${{ matrix.goos }}-${{ matrix.goarch }}"
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ inputs.app_name }}-${{ github.ref_name }}-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: ${{ inputs.app_name }}-${{ github.ref_name }}-${{ matrix.goos }}-${{ matrix.goarch }}
+
+  upload-binaries:
+    needs: [release-binary, release-binary-darwin]
+    runs-on: ubuntu-latest
+    env:
+      APP: ${{ inputs.app_name }}
+    steps:
+      - name: Download artifacts from previous jobs
+        uses: actions/download-artifact@v4
+        with:
+          path: dist/
+      - name: Add artifacts to release
+        run: |
+          gh release upload \
+            "${{ github.ref_name }}" \
+            dist/${APP}-${{ github.ref_name }}-*/*
