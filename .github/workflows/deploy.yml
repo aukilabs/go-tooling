@@ -1,0 +1,62 @@
+name: Deploy
+
+on:
+  workflow_call:
+    secrets:
+      argocd_host:
+        required: false
+      argocd_password:
+        required: false
+      ssh_host:
+        required: false
+      ssh_key:
+        required: false
+    inputs:
+      app_name:
+        required: true
+        type: string
+      enable_sync:
+        default: false
+        type: boolean
+      enable_restart:
+        default: false
+        type: boolean
+      enable_ec2_deploy:
+        default: false
+        type: boolean
+
+jobs:
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Authenticate ArgoCD
+        uses: clowdhaus/argo-cd-action/@main
+        if: ${{ inputs.enable_sync || inputs.enable_restart }}
+        with:
+          command: login
+          options: --username admin --password "${{ secrets.argocd_password }}" --grpc-web "${{ secrets.argocd_host }}:443"
+      - name: Sync ArgoCD app
+        uses: clowdhaus/argo-cd-action/@main
+        if: ${{ inputs.enable_sync }}
+        with:
+          command: app sync "${{ inputs.app_name }}"
+          options: --grpc-web --async
+      - name: Restart ArgoCD app
+        uses: clowdhaus/argo-cd-action/@main
+        if: ${{ inputs.enable_restart }}
+        with:
+          command: app actions run "${{ inputs.app_name }}" restart
+          options: --kind Deployment --resource-name "${{ inputs.app_name }}" --grpc-web
+      - name: Deploy to EC2
+        if: ${{ inputs.enable_ec2_deploy }}
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          PATH: "/usr/local/bin:/usr/bin:/bin:/home/ubuntu/src/github.com/${{ github.repository_owner }}/infrastructure/scripts:$PATH"
+        with:
+          host: ${{ secrets.ssh_host }}
+          username: ubuntu
+          envs: PATH
+          key: ${{ secrets.ssh_key }}
+          port: 22
+          script: "ARGOCD_PASSWORD=${{ secrets.argocd_password }} GITHUB_SHA=${{ github.sha }} GITHUB_REPOSITORY=${{ github.repository_owner }}/${{ inputs.app_name }} deploy.sh"
