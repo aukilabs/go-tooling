@@ -37,11 +37,12 @@ jobs:
           password: ${{ secrets.docker_password }}
       - name: Install dependencies
         run: go mod download
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
       - name: Build
         if: ${{ !inputs.version }}
         run: make build
+      - name: Set up Docker Buildx
+        if: ${{ inputs.version }}
+        uses: docker/setup-buildx-action@v3
       - name: Docker build and push
         id: docker-build-and-push
         if: ${{ inputs.version }}
