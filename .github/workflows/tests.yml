@@ -5,7 +5,6 @@ on:
     inputs:
       golang_version:
         default: '1.21'
-        required: false
         type: string
       enable_coverage:
         default: false
@@ -13,10 +12,31 @@ on:
       minimum_coverage:
         default: 0
         type: number
+      enable_integration_tests:
+        default: false
+        type: boolean
+      aws_region:
+        required: false
+        type: string
+      enable_docker_compose:
+        default: false
+        type: boolean
+      enable_checkout_api:
+        default: false
+        type: boolean
+    secrets:
+      github_app_id:
+        required: false
+      github_app_private_key:
+        required: false
+      aws_access_key:
+        required: false
+      aws_secret_access_key:
+        required: false
 
 jobs:
-  test:
-    name: Test
+  tests:
+    name: Tests
     runs-on: ubuntu-latest
     steps:
       - name: Set up Go
@@ -25,16 +45,21 @@ jobs:
           go-version: ${{ inputs.golang_version }}
       - name: Check out code
         uses: actions/checkout@v4
+        with:
+          path: local-repo
       - name: Vet
+        working-directory: local-repo
         run: go vet ./...
       - name: Install dependencies
-        run: |
-          go mod download
+        working-directory: local-repo
+        run: go mod download
       - name: Run unit tests
         if: ${{ !inputs.enable_coverage }}
+        working-directory: local-repo
         run: go test -p 1 ./...
       - name: Run unit tests with coverage
         if: ${{ inputs.enable_coverage }}
+        working-directory: local-repo
         run: |
           go test -p 1 -coverprofile cover.out -covermode set ./...
           coverage="$(go tool cover -func=cover.out | grep total: | sed 's/[^0-9.\]//g')"
@@ -44,3 +69,47 @@ jobs:
             echo "Test coverage failed: ${coverage}% is below the threshold ${{ inputs.minimum_coverage }}%."
             exit 1
           fi
+      - name: Generate token
+        if: ${{ inputs.enable_checkout_api }}
+        id: generate-token
+        uses: tibdex/github-app-token@v2
+        with:
+          app_id: ${{ secrets.github_app_id }}
+          private_key: ${{ secrets.github_app_private_key }}
+          permissions: >-
+            {
+              "contents": "read"
+            }
+      - name: Check out API code
+        uses: actions/checkout@v4
+        if: ${{ inputs.enable_checkout_api }}
+        with:
+          repository: aukilabs/api
+          ref: main
+          clean: false
+          path: api
+          token: ${{ steps.generate-token.outputs.token }}
+      - name: Configure AWS credentials
+        if: ${{ inputs.enable_docker_compose }}
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.aws_access_key }}
+          aws-secret-access-key: ${{ secrets.aws_secret_access_key }}
+          aws-region: ${{ inputs.aws_region }}
+      - name: Log in to AWS ECR
+        id: ecr-login
+        if: ${{ inputs.enable_docker_compose }}
+        uses: aws-actions/amazon-ecr-login@v2
+      - name: Start Docker compose for tests
+        if: ${{ inputs.enable_docker_compose }}
+        working-directory: local-repo
+        env:
+          DOCKER_REPO: ${{ steps.ecr-login.outputs.registry }}
+        run: docker-compose up -d
+      - name: Wait for service initialization
+        if: ${{ inputs.enable_docker_compose }}
+        run: sleep 5
+      - name: Integration tests
+        if: ${{ inputs.enable_integration_tests }}
+        working-directory: local-repo
+        run: make integration-tests
