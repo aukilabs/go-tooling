@@ -36,7 +36,7 @@ jobs:
           username: ${{ secrets.docker_username }}
           password: ${{ secrets.docker_password }}
       - name: Install dependencies
-        run: go mod download
+        run: go mod vendor
       - name: Build
         if: ${{ !inputs.version }}
         run: make build
