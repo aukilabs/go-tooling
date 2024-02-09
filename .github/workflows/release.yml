@@ -52,8 +52,7 @@ jobs:
         with:
           go-version: ${{ inputs.golang_version }}
       - name: Install dependencies
-        run: |
-          go mod download
+        run: go mod download
       - name: Build
         run: |
           make GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} VERSION="${{ github.ref_name }}" "bin/${APP}"
@@ -80,8 +79,7 @@ jobs:
         with:
           go-version: ${{ inputs.golang_version }}
       - name: Install dependencies
-        run: |
-          go mod download
+        run: go mod download
       - name: Build
         run: |
           make GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} VERSION="${{ github.ref_name }}" "bin/${APP}"
