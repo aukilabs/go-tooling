@@ -40,21 +40,15 @@ jobs:
           go-version: ${{ inputs.golang_version }}
       - name: Check out code
         uses: actions/checkout@v4
-        with:
-          path: local-repo
       - name: Vet
-        working-directory: local-repo
         run: go vet ./...
       - name: Install dependencies
-        working-directory: local-repo
         run: go mod download
       - name: Run unit tests
         if: ${{ !inputs.enable_coverage }}
-        working-directory: local-repo
         run: go test -p 1 ./...
       - name: Run unit tests with coverage
         if: ${{ inputs.enable_coverage }}
-        working-directory: local-repo
         run: |
           go test -p 1 -coverprofile cover.out -covermode set ./...
           coverage="$(go tool cover -func=cover.out | grep total: | sed 's/[^0-9.\]//g')"
@@ -65,17 +59,15 @@ jobs:
             exit 1
           fi
       - name: Start tunnel
+        id: start-tunnel
         if: ${{ inputs.enable_tunnel }}
-        uses: luisboto/ngrok-tunnel-action@v0.1.7.2
+        uses: gabriel-samfira/ngrok-tunnel-action@v1.1
         with:
-          timeout: 15m
           port: 4000
           ngrok_authtoken: ${{ secrets.ngrok_auth_token }}
           tunnel_type: http
-          save_url_to_filename: tunnelURL.md
       - name: Start Docker compose for tests
         if: ${{ inputs.enable_docker_compose }}
-        working-directory: local-repo
         env:
           DOCKER_REPO: ${{ steps.ecr-login.outputs.registry }}
         run: docker-compose up -d
@@ -84,5 +76,6 @@ jobs:
         run: sleep 5
       - name: Integration tests
         if: ${{ inputs.enable_integration_tests }}
-        working-directory: local-repo
+        env:
+          TUNNEL_URL: ${{ steps.start-tunnel.outputs.tunnel-url }}
         run: make integration-tests
