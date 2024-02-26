@@ -21,7 +21,7 @@ on:
       enable_docker_compose:
         default: false
         type: boolean
-      enable_checkout_api:
+      enable_tunnel:
         default: false
         type: boolean
     secrets:
@@ -29,9 +29,7 @@ on:
         required: false
       github_app_private_key:
         required: false
-      aws_access_key:
-        required: false
-      aws_secret_access_key:
+      ngrok_auth_token:
         required: false
 
 jobs:
@@ -69,37 +67,15 @@ jobs:
             echo "Test coverage failed: ${coverage}% is below the threshold ${{ inputs.minimum_coverage }}%."
             exit 1
           fi
-      - name: Generate token
-        if: ${{ inputs.enable_checkout_api }}
-        id: generate-token
-        uses: tibdex/github-app-token@v2
+      - name: Start tunnel
+        if: ${{ inputs.enable_tunnel }}
+        uses: luisboto/ngrok-tunnel-action@v0.1.7.2
         with:
-          app_id: ${{ secrets.github_app_id }}
-          private_key: ${{ secrets.github_app_private_key }}
-          permissions: >-
-            {
-              "contents": "read"
-            }
-      - name: Check out API code
-        uses: actions/checkout@v4
-        if: ${{ inputs.enable_checkout_api }}
-        with:
-          repository: aukilabs/api
-          ref: main
-          clean: false
-          path: api
-          token: ${{ steps.generate-token.outputs.token }}
-      - name: Configure AWS credentials
-        if: ${{ inputs.enable_docker_compose }}
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.aws_access_key }}
-          aws-secret-access-key: ${{ secrets.aws_secret_access_key }}
-          aws-region: ${{ inputs.aws_region }}
-      - name: Log in to AWS ECR
-        id: ecr-login
-        if: ${{ inputs.enable_docker_compose }}
-        uses: aws-actions/amazon-ecr-login@v2
+          timeout: 15m
+          port: 4000
+          ngrok_authtoken: ${{ secrets.ngrok_auth_token }}
+          tunnel_type: http
+          save_url_to_filename: tunnelURL.md
       - name: Start Docker compose for tests
         if: ${{ inputs.enable_docker_compose }}
         working-directory: local-repo
