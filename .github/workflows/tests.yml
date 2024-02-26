@@ -15,9 +15,6 @@ on:
       enable_integration_tests:
         default: false
         type: boolean
-      aws_region:
-        required: false
-        type: string
       enable_docker_compose:
         default: false
         type: boolean
