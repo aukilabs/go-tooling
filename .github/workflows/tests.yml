@@ -22,7 +22,7 @@ on:
         default: false
         type: boolean
       hds_address:
-        default: "http://hds.sandbox.aukiverse.com"
+        default: "https://hds.sandbox.aukiverse.com"
         type: string
     secrets:
       github_app_id:
