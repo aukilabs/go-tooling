@@ -21,6 +21,9 @@ on:
       enable_tunnel:
         default: false
         type: boolean
+      hds_address:
+        default: "http://hds.sandbox.aukiverse.com"
+        type: string
     secrets:
       github_app_id:
         required: false
@@ -78,4 +81,5 @@ jobs:
         if: ${{ inputs.enable_integration_tests }}
         env:
           TUNNEL_URL: ${{ steps.start-tunnel.outputs.tunnel-url }}
+          HDS_ADDR: ${{ inputs.hds_address }}
         run: make integration-tests
