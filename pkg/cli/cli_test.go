@@ -91,3 +91,7 @@ func TestContextWithSignals(t *testing.T) {
 	<-ctx.Done()
 	require.Error(t, ctx.Err())
 }
+
+func TestWillFail(t *testing.T) {
+	t.Fail()
+}
