@@ -12,3 +12,10 @@ jobs:
     name: Tests
     with:
       enable_coverage: true
+  custom:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          echo "the ref: ${{ github.ref_name }}"
+          echo "more echo"
+
