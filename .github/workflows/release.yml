@@ -16,6 +16,9 @@ on:
         required: false
         type: string
 
+permissions:
+  contents: write
+
 jobs:
   release-docker:
     runs-on: ubuntu-latest
