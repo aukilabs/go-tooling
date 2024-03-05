@@ -27,6 +27,41 @@ jobs:
         with:
           username: ${{ secrets.docker_username }}
           password: ${{ secrets.docker_password }}
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.docker_username }}
+          password: ${{ secrets.docker_password }}
+      - name: Set up regclient regctl
+        run: |
+          cat > regctl << 'EOF'
+          #!/bin/sh
+          docker container run -i --rm --net host \
+            -u "$(id -u):$(id -g)" -e HOME -v $HOME:$HOME \
+            -v /etc/docker/certs.d:/etc/docker/certs.d:ro \
+          regclient/regctl:v0 "$@"
+          EOF
+          chmod +x regctl
+      # This seems to still be needed as the credential sharing for Docker doesn't work yet
+      - name: Log in to Docker registries
+        run: |
+          ./regctl registry login -u '${{ secrets.docker_username }}' -p '${{ secrets.docker_password }}'
+          ./regctl registry config
+          echo "Testing credentials. Docker Hub might fail because it doesn't support listing images."
+          ./regctl repo ls --limit 5 docker.io || true
+      - name: Add version tags
+        run: |
+          dockerhub_image_name="aukilabs/${APP}"
+          minor_version_tag="$(echo "${{ github.ref_name }}" | awk -F'.' '{print $1 "." $2}')"
+          major_version_tag="$(echo "${{ github.ref_name }}" | awk -F'.' '{print $1}')"
+
+          for tag in \
+            "stable" \
+            "${minor_version_tag}" \
+            "${major_version_tag}" \
+          ; do
+            ./regctl image copy "${dockerhub_image_name}:${{ github.ref_name }}" "${dockerhub_image_name}:${tag}"
+          done
   release-binary:
     runs-on: ubuntu-latest
     strategy:
