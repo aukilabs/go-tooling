@@ -72,7 +72,8 @@ jobs:
         include:
           - { goos: "linux", goarch: "386" }
           - { goos: "linux", goarch: "amd64" }
-          - { goos: "linux", goarch: "arm" }
+          - { goos: "linux", goarch: "arm", arm_version: "v6" }
+          - { goos: "linux", goarch: "arm", arm_version: "v7" }
           - { goos: "linux", goarch: "arm64" }
           - { goos: "freebsd", goarch: "386" }
           - { goos: "freebsd", goarch: "amd64" }
@@ -93,13 +94,13 @@ jobs:
         run: go mod download
       - name: Build
         run: |
-          make GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} VERSION="${{ github.ref_name }}" "bin/${APP}"
-          mv "bin/${APP}" "${APP}-${{ github.ref_name }}-${{ matrix.goos }}-${{ matrix.goarch }}"
+          make GOOS="${{ matrix.goos }}" GOARCH="${{ matrix.goarch }}" arm_version="${{ matrix.arm_version }}" VERSION="${{ github.ref_name }}" "bin/${APP}"
+          mv "bin/${APP}" "${APP}-${{ github.ref_name }}-${{ matrix.goos }}-${{ matrix.goarch }}${{ matrix.arm_version }}"
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ inputs.app_name }}-${{ github.ref_name }}-${{ matrix.goos }}-${{ matrix.goarch }}
-          path: ${{ inputs.app_name }}-${{ github.ref_name }}-${{ matrix.goos }}-${{ matrix.goarch }}
+          name: ${{ inputs.app_name }}-${{ github.ref_name }}-${{ matrix.goos }}-${{ matrix.goarch }}${{ matrix.arm_version }}
+          path: ${{ inputs.app_name }}-${{ github.ref_name }}-${{ matrix.goos }}-${{ matrix.goarch }}${{ matrix.arm_version }}
   release-binary-darwin:
     runs-on: macos-latest
     strategy:
@@ -120,7 +121,7 @@ jobs:
         run: go mod download
       - name: Build
         run: |
-          make GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} VERSION="${{ github.ref_name }}" "bin/${APP}"
+          make GOOS="${{ matrix.goos }}" GOARCH="${{ matrix.goarch }}" VERSION="${{ github.ref_name }}" "bin/${APP}"
           mv "bin/${APP}" "${APP}-${{ github.ref_name }}-${{ matrix.goos }}-${{ matrix.goarch }}"
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
