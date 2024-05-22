@@ -205,8 +205,8 @@ func Newf(msgFormat string, v ...any) Error {
 	return makeRichError(fmt.Sprintf(msgFormat, v...))
 }
 
-// ToRichError returns an enriched error created from a passed in error.
-// If the error is already enriched, it is returned as is.
+// ToRichError returns an enriched error created from a passed-in error.
+// If the passed-in error is already enriched, it is returned as is.
 func ToRichError(err error) Error {
 	if alreadyRichError, ok := err.(Error); ok {
 		return alreadyRichError
