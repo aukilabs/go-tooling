@@ -386,6 +386,14 @@ func (e entry) MarshalJSON() ([]byte, error) {
 		for k, v := range err.Tags() {
 			e.tags[k] = v
 		}
+	} else if e.err != nil {
+		richErr := errors.ToRichError(e.err)
+		typ = richErr.Type()
+		wrappedErr = richErr.Unwrap()
+	}
+
+	if _, ok := wrappedErr.(errors.Error); !ok && wrappedErr != nil {
+		wrappedErr = errors.ToRichError(wrappedErr)
 	}
 
 	return Encoder(struct {

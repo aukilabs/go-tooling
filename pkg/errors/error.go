@@ -180,6 +180,19 @@ type Error interface {
 	Unwrap() error
 }
 
+// UnwrappableError is an interface describing error types that can be unwrapped.
+type UnwrappableError interface {
+	// Returns the wrapped error. Returns nil when there is no wrapped error.
+	Unwrap() error
+}
+
+// MultiUnwrappableError is an interface describing error types that can be
+// wrapping multiple errors.
+type MultiUnwrappableError interface {
+	// Returns the wrapped errors. Returns nil when there is no wrapped error.
+	Unwrap() []error
+}
+
 // New returns an error with the given message that can be enriched with a type
 // and tags.
 func New(msg string) Error {
@@ -190,6 +203,27 @@ func New(msg string) Error {
 // with a type and tags.
 func Newf(msgFormat string, v ...any) Error {
 	return makeRichError(fmt.Sprintf(msgFormat, v...))
+}
+
+// ToRichError returns an enriched error created from a passed in error.
+// If the error is already enriched, it is returned as is.
+func ToRichError(err error) Error {
+	if alreadyRichError, ok := err.(Error); ok {
+		return alreadyRichError
+	}
+	richErr := richError{
+		message:     err.Error(),
+		definedType: Type(err),
+	}
+	if _, ok := err.(UnwrappableError); ok {
+		richErr.wrappedErr = Unwrap(err)
+	} else if muErr, ok := err.(MultiUnwrappableError); ok {
+		wrappedErrs := muErr.Unwrap()
+		if len(wrappedErrs) > 0 {
+			richErr.wrappedErr = wrappedErrs[0]
+		}
+	}
+	return richErr
 }
 
 type richError struct {
@@ -268,10 +302,7 @@ func (e richError) Error() string {
 func (e richError) MarshalJSON() ([]byte, error) {
 	werr := e.wrappedErr
 	if _, ok := werr.(Error); !ok && werr != nil {
-		werr = richError{
-			message:     werr.Error(),
-			definedType: Type(werr),
-		}
+		werr = ToRichError(werr)
 	}
 
 	return Encoder(struct {
