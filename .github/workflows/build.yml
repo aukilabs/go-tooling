@@ -9,7 +9,7 @@ on:
         required: false
     inputs:
       golang_version:
-        default: '1.21'
+        default: '1.23'
         required: false
         type: string
       app_name:
