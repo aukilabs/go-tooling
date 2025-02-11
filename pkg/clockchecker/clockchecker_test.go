@@ -36,7 +36,7 @@ func TestCheckClockSync(t *testing.T) {
 			})
 
 			// Create a ClockChecker instance
-			clockChecker := New()
+			clockChecker := New(nil)
 
 			// Override getNTPTime for test case
 			if tt.failNTP {

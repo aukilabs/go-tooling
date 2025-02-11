@@ -9,7 +9,31 @@ import (
 	"github.com/beevik/ntp"
 )
 
-type ClockChecker struct {
+const (
+	DefaultInitialDelay     = 3 * time.Second
+	DefaultSecondCheckDelay = 1 * time.Minute
+	DefaultCheckInterval    = 6 * time.Hour
+	DefaultWarningThreshold = 5 * time.Second
+	DefaultErrorThreshold   = 10 * time.Second
+	DefaultNTPServerAddress = "pool.ntp.org"
+)
+
+type ClockChecker interface {
+	// Start runs the clock synchronization check at configured intervals in a goroutine.
+	Start(ctx context.Context)
+}
+
+type Options struct {
+	InitialDelay     time.Duration
+	SecondCheckDelay time.Duration
+	CheckInterval    time.Duration
+	WarningThreshold time.Duration
+	ErrorThreshold   time.Duration
+	NTPServerAddress string
+}
+
+type clockChecker struct {
+	started          bool
 	initialDelay     time.Duration
 	secondCheckDelay time.Duration
 	checkInterval    time.Duration
@@ -18,21 +42,47 @@ type ClockChecker struct {
 	getNTPTime       func() (time.Time, error)
 }
 
-func New() *ClockChecker {
-	return &ClockChecker{
-		initialDelay:     3 * time.Second,
-		secondCheckDelay: 1 * time.Minute,
-		checkInterval:    6 * time.Hour,
-		warningThreshold: 5 * time.Second,
-		errorThreshold:   10 * time.Second,
+func New(opts *Options) *clockChecker {
+	cc := &clockChecker{
+		initialDelay:     DefaultInitialDelay,
+		secondCheckDelay: DefaultSecondCheckDelay,
+		checkInterval:    DefaultCheckInterval,
+		warningThreshold: DefaultWarningThreshold,
+		errorThreshold:   DefaultErrorThreshold,
 		getNTPTime: func() (time.Time, error) {
-			return ntp.Time("pool.ntp.org")
+			return ntp.Time(DefaultNTPServerAddress)
 		},
 	}
+
+	if opts == nil {
+		return cc
+	}
+	if opts.InitialDelay != time.Duration(0) {
+		cc.initialDelay = opts.InitialDelay
+	}
+	if opts.SecondCheckDelay != time.Duration(0) {
+		cc.secondCheckDelay = opts.SecondCheckDelay
+	}
+	if opts.CheckInterval != time.Duration(0) {
+		cc.checkInterval = opts.CheckInterval
+	}
+	if opts.WarningThreshold != time.Duration(0) {
+		cc.warningThreshold = opts.WarningThreshold
+	}
+	if opts.ErrorThreshold != time.Duration(0) {
+		cc.errorThreshold = opts.ErrorThreshold
+	}
+	if opts.NTPServerAddress != "" {
+		cc.getNTPTime = func() (time.Time, error) {
+			return ntp.Time(opts.NTPServerAddress)
+		}
+	}
+
+	return cc
 }
 
 // checkClockSync checks if the system clock is out of sync and logs at different levels.
-func (c *ClockChecker) checkClockSync() error {
+func (c *clockChecker) checkClockSync() error {
 	ntpTime, err := c.getNTPTime()
 	if err != nil {
 		return errors.New("failed to retrieve time from NTP server").Wrap(err)
@@ -41,7 +91,7 @@ func (c *ClockChecker) checkClockSync() error {
 	localTime := time.Now()
 	diff := localTime.Sub(ntpTime)
 
-	// Log based on thresholds
+	// Log based on thresholds.
 	switch {
 	case diff > c.errorThreshold || diff < -c.errorThreshold:
 		logs.WithTag("difference", diff).
@@ -61,24 +111,28 @@ func (c *ClockChecker) checkClockSync() error {
 	return nil
 }
 
-// StartSyncMonitor runs the clock synchronization check at configured intervals in a goroutine.
-func StartSyncMonitor(ctx context.Context) {
-	clockChecker := New()
+// Start runs the clock synchronization check at configured intervals in a goroutine.
+func (c *clockChecker) Start(ctx context.Context) {
+	if c.started {
+		return
+	}
+	c.started = true
+
 	go func() {
-		// Initial check after 3 seconds
-		time.Sleep(clockChecker.initialDelay)
-		if err := clockChecker.checkClockSync(); err != nil {
+		// Initial check (default after 3 seconds).
+		time.Sleep(c.initialDelay)
+		if err := c.checkClockSync(); err != nil {
 			logs.Error(errors.New("clock skew check failed").Wrap(err))
 		}
 
-		// Second check after 1 minute
-		time.Sleep(clockChecker.secondCheckDelay - clockChecker.initialDelay)
-		if err := clockChecker.checkClockSync(); err != nil {
+		// Second check (default after 1 minute).
+		time.Sleep(c.secondCheckDelay - c.initialDelay)
+		if err := c.checkClockSync(); err != nil {
 			logs.Error(errors.New("clock skew check failed").Wrap(err))
 		}
 
-		// Periodic checks every 6 hours
-		ticker := time.NewTicker(clockChecker.checkInterval)
+		// Periodic checks (default every 6 hours).
+		ticker := time.NewTicker(c.checkInterval)
 		defer ticker.Stop()
 
 		for {
@@ -86,7 +140,7 @@ func StartSyncMonitor(ctx context.Context) {
 			case <-ctx.Done():
 				return
 			case <-ticker.C:
-				if err := clockChecker.checkClockSync(); err != nil {
+				if err := c.checkClockSync(); err != nil {
 					logs.Error(errors.New("clock skew check failed").Wrap(err))
 				}
 			}
