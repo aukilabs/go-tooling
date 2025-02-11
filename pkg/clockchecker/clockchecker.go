@@ -18,7 +18,7 @@ type ClockChecker struct {
 	getNTPTime       func() (time.Time, error)
 }
 
-func NewClockChecker() *ClockChecker {
+func New() *ClockChecker {
 	return &ClockChecker{
 		initialDelay:     3 * time.Second,
 		secondCheckDelay: 1 * time.Minute,
@@ -63,7 +63,7 @@ func (c *ClockChecker) checkClockSync(ctx context.Context) error {
 
 // StartSyncMonitor runs the clock synchronization check at configured intervals in a goroutine.
 func StartSyncMonitor(ctx context.Context) {
-	clockChecker := NewClockChecker()
+	clockChecker := New()
 	go func() {
 		// Initial check after 3 seconds
 		time.Sleep(clockChecker.initialDelay)
