@@ -1,6 +1,7 @@
 package clockchecker
 
 import (
+	"context"
 	"time"
 
 	"github.com/aukilabs/go-tooling/pkg/errors"
@@ -8,28 +9,33 @@ import (
 	"github.com/beevik/ntp"
 )
 
-// Configurable parameters
-var (
-	ntpServer        = "pool.ntp.org"
-	initialDelay     = 3 * time.Second // First check after 3 seconds
-	secondCheckDelay = 1 * time.Minute // Second check after 1 minute
-	checkInterval    = 6 * time.Hour   // Subsequent checks every 6 hours
+type ClockChecker struct {
+	initialDelay     time.Duration
+	secondCheckDelay time.Duration
+	checkInterval    time.Duration
+	warningThreshold time.Duration
+	errorThreshold   time.Duration
+	getNTPTime       func() (time.Time, error)
+}
 
-	warningThreshold = 5 * time.Second  // Warning if out of sync by more than 5s
-	errorThreshold   = 10 * time.Second // Error if out of sync by more than 10s
-
-	// Function variable for testing
-	getNTPTime = func() (time.Time, error) {
-		return ntp.Time(ntpServer)
+func NewClockChecker() *ClockChecker {
+	return &ClockChecker{
+		initialDelay:     3 * time.Second,
+		secondCheckDelay: 1 * time.Minute,
+		checkInterval:    6 * time.Hour,
+		warningThreshold: 5 * time.Second,
+		errorThreshold:   10 * time.Second,
+		getNTPTime: func() (time.Time, error) {
+			return ntp.Time("pool.ntp.org")
+		},
 	}
-)
+}
 
-// CheckClockSync checks if the system clock is out of sync and logs at different levels.
-func CheckClockSync() error {
-	ntpTime, err := getNTPTime()
+// checkClockSync checks if the system clock is out of sync and logs at different levels.
+func (c *ClockChecker) checkClockSync(ctx context.Context) error {
+	ntpTime, err := c.getNTPTime()
 	if err != nil {
-		logs.Error(errors.New("failed to retrieve time from NTP server").Wrap(err))
-		return err
+		return errors.New("failed to retrieve time from NTP server").Wrap(err)
 	}
 
 	localTime := time.Now()
@@ -37,12 +43,12 @@ func CheckClockSync() error {
 
 	// Log based on thresholds
 	switch {
-	case diff > errorThreshold || diff < -errorThreshold:
+	case diff > c.errorThreshold || diff < -c.errorThreshold:
 		logs.WithTag("difference", diff).
 			WithTag("local_time", localTime).
 			WithTag("ntp_time", ntpTime).
 			Error(errors.New("system clock is severely out of sync"))
-	case diff > warningThreshold || diff < -warningThreshold:
+	case diff > c.warningThreshold || diff < -c.warningThreshold:
 		logs.WithTag("difference", diff).
 			WithTag("local_time", localTime).
 			WithTag("ntp_time", ntpTime).
@@ -56,27 +62,33 @@ func CheckClockSync() error {
 }
 
 // StartSyncMonitor runs the clock synchronization check at configured intervals in a goroutine.
-func StartSyncMonitor() {
+func StartSyncMonitor(ctx context.Context) {
+	clockChecker := NewClockChecker()
 	go func() {
 		// Initial check after 3 seconds
-		time.Sleep(initialDelay)
-		if err := CheckClockSync(); err != nil {
+		time.Sleep(clockChecker.initialDelay)
+		if err := clockChecker.checkClockSync(ctx); err != nil {
 			logs.Error(errors.New("clock skew check failed").Wrap(err))
 		}
 
 		// Second check after 1 minute
-		time.Sleep(secondCheckDelay - initialDelay)
-		if err := CheckClockSync(); err != nil {
+		time.Sleep(clockChecker.secondCheckDelay - clockChecker.initialDelay)
+		if err := clockChecker.checkClockSync(ctx); err != nil {
 			logs.Error(errors.New("clock skew check failed").Wrap(err))
 		}
 
 		// Periodic checks every 6 hours
-		ticker := time.NewTicker(checkInterval)
+		ticker := time.NewTicker(clockChecker.checkInterval)
 		defer ticker.Stop()
 
-		for range ticker.C {
-			if err := CheckClockSync(); err != nil {
-				logs.Error(errors.New("clock skew check failed").Wrap(err))
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				if err := clockChecker.checkClockSync(ctx); err != nil {
+					logs.Error(errors.New("clock skew check failed").Wrap(err))
+				}
 			}
 		}
 	}()
