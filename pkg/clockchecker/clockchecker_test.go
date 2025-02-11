@@ -50,7 +50,7 @@ func TestCheckClockSync(t *testing.T) {
 			}
 
 			// Run clock sync check
-			err := clockChecker.checkClockSync(nil)
+			err := clockChecker.checkClockSync()
 			logOutput := logBuffer.String()
 
 			// Expect error only if it's an NTP failure

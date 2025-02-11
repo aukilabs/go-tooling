@@ -32,7 +32,7 @@ func New() *ClockChecker {
 }
 
 // checkClockSync checks if the system clock is out of sync and logs at different levels.
-func (c *ClockChecker) checkClockSync(ctx context.Context) error {
+func (c *ClockChecker) checkClockSync() error {
 	ntpTime, err := c.getNTPTime()
 	if err != nil {
 		return errors.New("failed to retrieve time from NTP server").Wrap(err)
@@ -67,13 +67,13 @@ func StartSyncMonitor(ctx context.Context) {
 	go func() {
 		// Initial check after 3 seconds
 		time.Sleep(clockChecker.initialDelay)
-		if err := clockChecker.checkClockSync(ctx); err != nil {
+		if err := clockChecker.checkClockSync(); err != nil {
 			logs.Error(errors.New("clock skew check failed").Wrap(err))
 		}
 
 		// Second check after 1 minute
 		time.Sleep(clockChecker.secondCheckDelay - clockChecker.initialDelay)
-		if err := clockChecker.checkClockSync(ctx); err != nil {
+		if err := clockChecker.checkClockSync(); err != nil {
 			logs.Error(errors.New("clock skew check failed").Wrap(err))
 		}
 
@@ -86,7 +86,7 @@ func StartSyncMonitor(ctx context.Context) {
 			case <-ctx.Done():
 				return
 			case <-ticker.C:
-				if err := clockChecker.checkClockSync(ctx); err != nil {
+				if err := clockChecker.checkClockSync(); err != nil {
 					logs.Error(errors.New("clock skew check failed").Wrap(err))
 				}
 			}
