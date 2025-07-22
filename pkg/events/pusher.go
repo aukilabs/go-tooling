@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
-	"sync"
 	"time"
 
 	"github.com/aukilabs/go-tooling/pkg/errors"
@@ -43,25 +42,20 @@ type Pusher struct {
 	// The function to encode events. Default is json.Marshal.
 	Encode func(any) ([]byte, error)
 
-	initOnce  sync.Once
-	startOnce sync.Once
-	wg        sync.WaitGroup
-	cancel    func()
-	events    chan Event
+	cancel func()
+	events chan Event
 }
 
 // Start starts logging events asynchronously.
 func (l *Pusher) Start() {
-	l.initOnce.Do(l.init)
+	l.init()
 
-	l.startOnce.Do(func() {
-		go l.start()
-	})
+	go l.start()
 }
 
 // NewEvent logs the given event.
 func (l *Pusher) NewEvent(e Event) {
-	l.initOnce.Do(l.init)
+	l.init()
 	l.events <- e
 }
 
@@ -70,8 +64,6 @@ func (l *Pusher) Close() {
 	if l.cancel != nil {
 		l.cancel()
 	}
-
-	l.wg.Wait()
 }
 
 func (l *Pusher) init() {
@@ -102,7 +94,6 @@ func (l *Pusher) start() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	l.cancel = cancel
-	l.wg.Add(1)
 
 	ticker := time.NewTicker(l.FlushInterval)
 	defer ticker.Stop()
@@ -113,7 +104,6 @@ func (l *Pusher) start() {
 		select {
 		case <-ctx.Done():
 			l.flush(batch)
-			l.wg.Done()
 			return
 
 		case e := <-l.events:

@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"os"
 	"strconv"
-	"sync"
 	"time"
 
 	"github.com/aukilabs/go-tooling/pkg/errors"
@@ -83,9 +82,6 @@ func (l Level) String() string {
 
 // Sets what log levels are logged. Levels under the given level are ignored.
 func SetLevel(v Level) {
-	loggerMutex.Lock()
-	defer loggerMutex.Unlock()
-
 	currentLevel = v
 
 	for i := DebugLevel; i <= ErrorLevel; i++ {
@@ -231,7 +227,6 @@ type Entry interface {
 }
 
 var (
-	loggerMutex   sync.RWMutex
 	loggers       = make(map[Level]func(Entry), ErrorLevel+1)
 	logger        func(e Entry)
 	defaultLogger = func(e Entry) { fmt.Println(e) }
@@ -245,8 +240,6 @@ func init() {
 }
 
 func log(e Entry) {
-	loggerMutex.RLock()
-	defer loggerMutex.RUnlock()
 	loggers[e.Level()](e)
 }
 
