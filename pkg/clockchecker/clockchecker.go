@@ -122,13 +122,13 @@ func (c *clockChecker) Start(ctx context.Context) {
 		// Initial check (default after 3 seconds).
 		time.Sleep(c.initialDelay)
 		if err := c.checkClockSync(); err != nil {
-			logs.Error(errors.New("clock skew check failed").Wrap(err))
+			logs.Warn(errors.New("clock skew check failed").Wrap(err))
 		}
 
 		// Second check (default after 1 minute).
 		time.Sleep(c.secondCheckDelay - c.initialDelay)
 		if err := c.checkClockSync(); err != nil {
-			logs.Error(errors.New("clock skew check failed").Wrap(err))
+			logs.Warn(errors.New("clock skew check failed").Wrap(err))
 		}
 
 		// Periodic checks (default every 6 hours).
@@ -141,7 +141,7 @@ func (c *clockChecker) Start(ctx context.Context) {
 				return
 			case <-ticker.C:
 				if err := c.checkClockSync(); err != nil {
-					logs.Error(errors.New("clock skew check failed").Wrap(err))
+					logs.Warn(errors.New("clock skew check failed").Wrap(err))
 				}
 			}
 		}
